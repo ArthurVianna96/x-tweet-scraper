@@ -14,7 +14,7 @@ import { XClient } from '../adapters/x/graphql.js';
 import { QueryIdResolver } from '../adapters/x/query-ids.js';
 import { SessionPool, generateBrowserHeaders } from '../adapters/x/session.js';
 import { collect } from '../domain/collect.js';
-import { effectiveCap, resolveEntitlement } from '../domain/entitlement.js';
+import { effectiveCap, requestBudgetFor, resolveEntitlement } from '../domain/entitlement.js';
 import { matchesFilters, sortTweets } from '../domain/filters.js';
 import { ResultSink, resumePushCount } from '../domain/result-sink.js';
 import type { Tweet } from '../domain/types.js';
@@ -41,6 +41,7 @@ try {
       : createEntitlementLookup({ client: Actor.newClient(), ...entitlementConfig }),
   );
   const cap = effectiveCap(entitlement, input.maxResults);
+  const requestBudget = requestBudgetFor(entitlement, input.maxRequests);
 
   if (entitlement.reason === 'entitlement_unavailable') {
     // The alertable condition: same cap as a free user, but this one might be a paying
@@ -52,6 +53,15 @@ try {
     });
   } else {
     log.info('entitlement resolved', { paid: entitlement.paid, cap, requested: input.maxResults });
+  }
+
+  if (requestBudget < input.maxRequests) {
+    // The push cap stops the run at N matches; it cannot stop a search that never
+    // matches. An unverified run is bounded on both axes (SPEC.md §4.3).
+    log.info('request budget lowered for an unverified run', {
+      configured: input.maxRequests,
+      applied: requestBudget,
+    });
   }
 
   // --- Resume: the counter is floored on an authority the runner cannot lower ----
@@ -112,7 +122,7 @@ try {
     expansionDepth: (input.fromUsers?.length ?? 0) > 0 ? 0 : input.expansionDepth,
     cursors: state.cursors,
     maxPagesPerAccount: input.maxPagesPerAccount,
-    maxRequests: input.maxRequests,
+    maxRequests: requestBudget,
     onEvent: (event) => log.debug('crawl', event),
   });
 
@@ -164,6 +174,7 @@ try {
 
   const summary = buildRunSummary({
     requestedMaxResults: input.maxResults,
+    requestBudget,
     entitlement,
     collect: collected,
     crawl: crawler.stats,

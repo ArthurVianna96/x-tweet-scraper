@@ -4,6 +4,7 @@ import { PRICING, buildRunSummary, estimateCost } from './summary.js';
 
 const base = {
   requestedMaxResults: 1000,
+  requestBudget: 100,
   entitlement: {
     paid: false,
     limited: true,

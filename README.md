@@ -298,6 +298,23 @@ background. **A free user who asks for 1000 results costs us one page.** That is
 directly: the test drives a 100-page source and asserts exactly one page was fetched and
 the generator was closed.
 
+### The cap alone does not bound cost
+
+That claim holds when the filter matches. It does not when the filter is selective, and
+the difference is not small.
+
+The sink stops the run at 10 **matches** — and a low-selectivity search may never reach 10. It exhausts the account frontier first, and the gate never engages at all. Measured on
+the shipped Actor: a free run with `searchTerms: ["web scraping"]` fetched **7,287 tweets
+across 284 pages, spending 328 requests and 10 guest tokens, to deliver 9 results**. The
+cap was working correctly the whole time; it simply had nothing to stop.
+
+So an unverified run is bounded on **both** axes: results by the cap, and requests by an
+allowance proportional to what it may return — 10 requests per permitted result, so 100
+for a 10-result cap. Roughly 2,000 tweets scanned is a generous sample and two orders of
+magnitude below "however many accounts exist". A paid run keeps its configured budget.
+Re-running that same scenario after the change: **29 requests, 14 pages, 3 tokens, 10
+results.**
+
 `maxResults` is also clamped up front, as an optimisation — but the clamp is not the
 protection, and the input schema deliberately carries **no `"maximum": 10`**. A limit
 expressed in the input is exactly the client-side artifact the brief rejects, and it would

@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { collect } from './collect.js';
-import { FREE_TIER_CAP, effectiveCap, resolveEntitlement } from './entitlement.js';
+import {
+  FREE_TIER_CAP,
+  FREE_TIER_REQUESTS_PER_RESULT,
+  effectiveCap,
+  requestBudgetFor,
+  resolveEntitlement,
+} from './entitlement.js';
 import { ResultSink, resumePushCount } from './result-sink.js';
 
 /**
@@ -124,6 +130,36 @@ describe('free-tier cap (brief §6, §7 — required)', () => {
 
     expect(dataset.items).toHaveLength(FREE_TIER_CAP);
     expect(sink.count).toBe(FREE_TIER_CAP);
+  });
+});
+
+describe('an unverified run is bounded on cost as well as on results (SPEC.md §4.3)', () => {
+  it('lowers the request budget in proportion to what the run may return', async () => {
+    // The push cap stops at N *matches*. A low-selectivity search never reaches N, so the
+    // cap never engages: measured, a free keyword run spent 328 requests and 10 guest
+    // tokens fetching 7,287 tweets to deliver 9 results.
+    const free = await resolveEntitlement(async () => ({ paid: false }));
+
+    expect(requestBudgetFor(free, 500)).toBe(FREE_TIER_CAP * FREE_TIER_REQUESTS_PER_RESULT);
+    expect(requestBudgetFor(free, 500)).toBeLessThan(500);
+  });
+
+  it('never raises a budget the caller set lower', async () => {
+    const free = await resolveEntitlement(async () => ({ paid: false }));
+    expect(requestBudgetFor(free, 20)).toBe(20);
+  });
+
+  it('leaves a paid run\u2019s configured budget alone', async () => {
+    const paid = await resolveEntitlement(async () => ({ paid: true }));
+    expect(requestBudgetFor(paid, 500)).toBe(500);
+    expect(requestBudgetFor(paid, 100_000)).toBe(100_000);
+  });
+
+  it('bounds a run that cannot be verified, exactly like a free one', async () => {
+    const unverified = await resolveEntitlement(async () => {
+      throw new Error('store unreachable');
+    });
+    expect(requestBudgetFor(unverified, 500)).toBe(FREE_TIER_CAP * FREE_TIER_REQUESTS_PER_RESULT);
   });
 });
 

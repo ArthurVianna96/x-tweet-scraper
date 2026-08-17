@@ -16,6 +16,8 @@ export interface RunSummary {
   readonly requested: number;
   readonly fetched: number;
   readonly pushed: number;
+  /** Request ceiling actually applied — lowered for unverified runs (SPEC.md §4.3). */
+  readonly requestBudget: number;
 
   readonly limited: boolean;
   readonly reason: string | null;
@@ -65,6 +67,7 @@ export const PRICING = {
 
 export interface SummaryInputs {
   readonly requestedMaxResults: number;
+  readonly requestBudget: number;
   readonly entitlement: Entitlement;
   readonly collect: CollectStats;
   readonly crawl: CrawlStats;
@@ -84,6 +87,7 @@ export function buildRunSummary(inputs: SummaryInputs): RunSummary {
     requested: inputs.requestedMaxResults,
     fetched: collect.fetched,
     pushed,
+    requestBudget: inputs.requestBudget,
 
     limited: inputs.entitlement.limited,
     reason: inputs.entitlement.reason,
