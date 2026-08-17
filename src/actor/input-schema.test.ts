@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -109,5 +109,73 @@ describe('.actor/input_schema.json', () => {
         field.default,
       );
     }
+  });
+});
+
+describe('.actor definition files', () => {
+  const actorDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../.actor');
+  const actorJson = JSON.parse(readFileSync(resolve(actorDir, 'actor.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >;
+
+  it('references only files that exist', () => {
+    // Apify resolves these at build time; a dangling path fails the build, not the tests.
+    const refs = [
+      actorJson['input'],
+      actorJson['output'],
+      ...Object.values((actorJson['storages'] ?? {}) as Record<string, unknown>),
+    ].filter((ref): ref is string => typeof ref === 'string');
+
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      expect(existsSync(resolve(actorDir, ref)), `${ref} is referenced but missing`).toBe(true);
+    }
+  });
+
+  it('declares an output schema, which the Store requires before publishing', () => {
+    // "Add Output schema(s) to the source code and rebuild" blocks publication otherwise.
+    const output = JSON.parse(
+      readFileSync(resolve(actorDir, 'output_schema.json'), 'utf8'),
+    ) as Record<string, unknown>;
+
+    expect(output['actorOutputSchemaVersion']).toBe(1);
+    expect(output['title']).toBeTruthy();
+    expect(Object.keys(output['properties'] as object).length).toBeGreaterThan(0);
+
+    for (const field of Object.values(
+      output['properties'] as Record<string, Field & { template?: string }>,
+    )) {
+      expect(field.title, 'output property needs a title').toBeTruthy();
+      expect(field.template, 'output property needs a template').toBeTruthy();
+    }
+  });
+
+  it('declares the key-value store collections a caller actually reads', () => {
+    const kvs = JSON.parse(
+      readFileSync(resolve(actorDir, 'key_value_store_schema.json'), 'utf8'),
+    ) as {
+      actorKeyValueStoreSchemaVersion: number;
+      collections: Record<string, { key?: string; keyPrefix?: string; title?: string }>;
+    };
+
+    expect(kvs.actorKeyValueStoreSchemaVersion).toBe(1);
+    for (const [name, collection] of Object.entries(kvs.collections)) {
+      expect(collection.title, `${name} needs a title`).toBeTruthy();
+      // Apify requires exactly one of key / keyPrefix.
+      expect(
+        (collection.key === undefined) !== (collection.keyPrefix === undefined),
+        `${name} must set exactly one of key/keyPrefix`,
+      ).toBe(true);
+    }
+
+    // The run summary is part of the documented output, so it must be declared.
+    expect(Object.values(kvs.collections).some((c) => c.key === 'OUTPUT')).toBe(true);
+  });
+
+  it('keeps the Store listing metadata that publication requires', () => {
+    expect(actorJson['title']).toBeTruthy();
+    expect(actorJson['description']).toBeTruthy();
+    expect((actorJson['categories'] as string[])?.length).toBeGreaterThan(0);
   });
 });

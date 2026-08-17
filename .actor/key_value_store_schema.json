@@ -1,0 +1,19 @@
+{
+  "actorKeyValueStoreSchemaVersion": 1,
+  "title": "X Tweet Scraper storage",
+  "description": "The run summary a caller should read, kept separate from the internal checkpoint they should not need to.",
+  "collections": {
+    "runSummary": {
+      "title": "Run summary",
+      "description": "Written at the end of every run: requested vs fetched vs pushed, whether the free-tier cap applied and why, selectivity, tokens consumed, error counts and estimated cost per 1k results.",
+      "key": "OUTPUT",
+      "contentTypes": ["application/json"]
+    },
+    "checkpoint": {
+      "title": "Crawl checkpoint (internal)",
+      "description": "Per-account cursors, the global seen-set and buffered results, persisted so a migrated or resurrected run resumes rather than restarts. Not part of the output contract — and deliberately not trusted for the free-tier counter, which is floored on the dataset's own item count.",
+      "key": "CRAWL_STATE",
+      "contentTypes": ["application/json"]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "X Tweet Scraper output",
+  "description": "Normalized tweets in the dataset, plus a run summary that reports what the run cost and why it returned what it did.",
+  "type": "object",
+  "properties": {
+    "tweets": {
+      "type": "string",
+      "title": "Tweets",
+      "description": "One item per tweet, conforming exactly to the documented schema. Absent values are null, never omitted.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    },
+    "runSummary": {
+      "type": "string",
+      "title": "Run summary",
+      "description": "Requested vs fetched vs pushed, the free-tier verdict (limited / reason / cap), selectivity, guest tokens consumed, error counts and estimated cost per 1k results.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT"
+    }
+  }
+}
