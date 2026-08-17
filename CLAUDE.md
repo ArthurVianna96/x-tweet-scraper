@@ -1,7 +1,7 @@
 # x-tweet-scraper — project conventions
 
 Browserless X (Twitter) scraper, shipped as an Apify Actor. `SPEC.md` is the contract;
-this file is only *how we write the code*. When the two disagree, `SPEC.md` wins.
+this file is only _how we write the code_. When the two disagree, `SPEC.md` wins.
 
 ## Layout
 
@@ -32,16 +32,16 @@ argument or a function parameter — never an import.
   A unit test constructs the thing with fakes and asserts. `vi.mock` is a smell here.
 - **`null` is the absent value** in Actor output. Never `undefined`, never omitted.
 - Tests are colocated: `foo.ts` → `foo.test.ts`. Fixtures live in `test/fixtures/`.
-- Comments explain *why*, and are reserved for decisions a reader would otherwise
+- Comments explain _why_, and are reserved for decisions a reader would otherwise
   reverse. The load-bearing ones are cross-referenced to `SPEC.md` sections.
 - Conventional commits, one atomic commit per build step.
 
 ## Commands
 
-| | |
-| --- | --- |
-| `npm test` | Vitest, offline, no platform |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` / `npm run format` | eslint / prettier |
-| `npm run start:dev` | run the Actor locally via tsx |
-| `npm run probe` | reproduce the endpoint capability matrix (~20 s, no credentials) |
+|                                   |                                                                  |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `npm test`                        | Vitest, offline, no platform                                     |
+| `npm run typecheck`               | `tsc --noEmit`                                                   |
+| `npm run lint` / `npm run format` | eslint / prettier                                                |
+| `npm run start:dev`               | run the Actor locally via tsx                                    |
+| `npm run probe`                   | reproduce the endpoint capability matrix (~20 s, no credentials) |

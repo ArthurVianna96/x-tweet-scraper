@@ -104,7 +104,12 @@ try {
     discovery,
     concurrency: input.maxConcurrency,
     maxAccounts: input.maxAccounts,
-    expansionDepth: input.expansionDepth,
+    /**
+     * Snowball expansion is switched off when the caller named the accounts, because
+     * `fromUsers` is a filter as well as a seed: every tweet an expanded account produced
+     * would be discarded by that filter, so the expansion would be pure request cost.
+     */
+    expansionDepth: (input.fromUsers?.length ?? 0) > 0 ? 0 : input.expansionDepth,
     cursors: state.cursors,
     maxPagesPerAccount: input.maxPagesPerAccount,
     maxRequests: input.maxRequests,

@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+dist
+storage
+apify_storage
+crawlee_storage
+coverage
+test
+*.log
+.DS_Store
+.env
+.env.*

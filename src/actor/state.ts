@@ -19,6 +19,9 @@ export const STATE_KEY = 'CRAWL_STATE';
 /** Bounded so a long run cannot grow the checkpoint without limit. */
 const MAX_SEEN_KEYS = 50_000;
 
+/** Above this, the buffer is dropped from the checkpoint rather than risking the record. */
+const MAX_BUFFERED_RESULTS = 5_000;
+
 export interface RunState {
   readonly pushed: number;
   readonly cursors: Record<string, string>;
@@ -61,8 +64,21 @@ export async function loadState(): Promise<RunState> {
 
 export async function persistState(state: RunState): Promise<void> {
   try {
+    /**
+     * A key-value record has a size limit, and the buffer is the only unbounded part of
+     * this state. Dropping it costs a re-fetch after a migration; exceeding the limit
+     * would fail the checkpoint entirely and lose the cursors too.
+     */
+    const buffer = state.buffer.length > MAX_BUFFERED_RESULTS ? [] : state.buffer;
+    if (buffer.length !== state.buffer.length) {
+      log.warning('checkpoint dropped the result buffer — too large to persist', {
+        items: state.buffer.length,
+      });
+    }
+
     await Actor.setValue(STATE_KEY, {
       ...state,
+      buffer,
       seen: state.seen.slice(-MAX_SEEN_KEYS),
     });
   } catch (err) {
