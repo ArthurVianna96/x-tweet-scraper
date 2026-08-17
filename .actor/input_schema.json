@@ -6,15 +6,15 @@
     "searchTerms": {
       "title": "Search terms",
       "type": "array",
-      "description": "Keywords to match against tweet text (case-insensitive). Multiple terms are OR'd. Because X's search endpoint is closed to logged-out clients, keywords also seed account discovery — see the README on recall.",
-      "editor": "stringList",
-      "prefill": ["web scraping"]
+      "description": "Keywords to match against tweet text (case-insensitive). Multiple terms are OR'd. X's search endpoint is closed to logged-out clients, so with no `fromUsers` supplied these keywords also seed account discovery via one search-engine lookup — see the README on recall.",
+      "editor": "stringList"
     },
     "fromUsers": {
       "title": "From these accounts",
       "type": "array",
-      "description": "Handles without '@'. When supplied, the Actor makes no third-party call at all: these accounts are crawled directly on X.",
-      "editor": "stringList"
+      "description": "Handles without '@'. When supplied, the Actor makes no third-party call at all: these accounts are crawled directly on X. This is the fastest and most deterministic path — clear it to discover accounts from `searchTerms`/`hashtags` instead.",
+      "editor": "stringList",
+      "prefill": ["apify", "naval"]
     },
     "toUsers": {
       "title": "Replies directed at",

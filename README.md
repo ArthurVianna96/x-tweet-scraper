@@ -583,6 +583,33 @@ bounded by the cap and checkpointed on migration.
 
 ## 7. Running it
 
+### For reviewers — the fastest way to verify this
+
+The Actor is **not** published to the Apify Store; §9 asks for a deployed Actor you can
+run, "share it, or provide clear deploy steps + your Actor URL", and both of those are
+covered here. Ask and it can be shared directly with your Apify account.
+
+**No account needed.** A fresh clone runs the whole thing, and the gate is visible
+immediately because it fails closed without an entitlements store:
+
+```bash
+git clone https://github.com/ArthurVianna96/x-tweet-scraper && cd x-tweet-scraper
+npm install && npm test              # 204 tests, offline, ~0.5s
+mkdir -p storage/key_value_stores/default
+echo '{"fromUsers":["apify"],"maxResults":1000}' \
+  > storage/key_value_stores/default/INPUT.json
+npm run start:dev
+```
+
+That run requests 1000 and returns **10**, logging
+`reason: "entitlement_unavailable"` — the fail-closed path. To see the _verified_-free
+path (`reason: "free_tier"`) and the paid path, you need the entitlements store: either
+run the deployed Actor above, or stand up your own store per the steps below — it is two
+commands.
+
+Both halves of the gate on the deployed Actor, if you would rather read numbers than run
+anything, are in the table below.
+
 ### Deployment status
 
 Deployed and verified on Apify on 2026-08-17 (Actor `x-tweet-scraper`, build 0.1.2):
