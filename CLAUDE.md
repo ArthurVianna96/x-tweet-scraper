@@ -26,14 +26,14 @@ argument or a function parameter — never an import.
   crossing a public boundary. Untrusted JSON enters as `unknown` and is narrowed.
 - **Zod at every boundary** — Actor input, entitlement records. Not on X payloads: those
   are wide, deep and change without notice, so the normalizer reads them defensively by
-  path and emits `null` for anything absent (see `SPEC.md` §3.2).
+  path and emits `null` for anything absent.
 - **Named exports only.** No default exports.
-- **Seam = constructor injection** (`SPEC.md` §8). No DI container, no module mocking.
+- **Seam = constructor injection.** No DI container, no module mocking.
   A unit test constructs the thing with fakes and asserts. `vi.mock` is a smell here.
 - **`null` is the absent value** in Actor output. Never `undefined`, never omitted.
 - Tests are colocated: `foo.ts` → `foo.test.ts`. Fixtures live in `test/fixtures/`.
-- Comments explain _why_, and are reserved for decisions a reader would otherwise
-  reverse. The load-bearing ones are cross-referenced to `SPEC.md` sections.
+- Comments explain _why_, and only for decisions a reader would otherwise reverse.
+  The code documents what it does; a comment that restates the next line is noise.
 - Conventional commits, one atomic commit per build step.
 
 ## Commands
