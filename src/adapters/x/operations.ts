@@ -4,9 +4,9 @@ import { asBoolean, asString, path } from './json.js';
 import { extractTimelinePage, readUnavailableReason, type TimelinePage } from './timeline.js';
 
 /**
- * The two operations the whole Actor runs on. Of the 23 GraphQL operations probed, only
- * four are reachable with guest auth, and these are the two that carry data we need
- * (SPEC.md §2).
+ * The two operations the whole Actor runs on. Of the 23 GraphQL operations probed, five
+ * are reachable with guest auth, and these are the two that carry tweets (SPEC.md §2).
+ * `npm run probe` re-derives that matrix; `docs/README-data-source.md` §2 records it.
  */
 
 export interface XUser {

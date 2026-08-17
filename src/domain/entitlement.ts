@@ -103,16 +103,14 @@ export function effectiveCap(entitlement: Entitlement, maxResults: number): numb
  *
  * **The push cap does not bound cost on its own.** It stops the run at 10 *matches*, and
  * a low-selectivity search may never reach 10 — it exhausts the account frontier first,
- * and the gate never engages.
+ * so the gate never engages. Measured on the shipped Actor: a free run with
+ * `searchTerms: ["web scraping"]` fetched 7,287 tweets across 284 pages, spending 328
+ * requests and 10 guest tokens, to deliver 9 results. The same free tier on a `fromUsers`
+ * run costs 3. The cap was working correctly in both; only one was affordable.
  *
- * Measured on the shipped Actor: a free run with `searchTerms: ["web scraping"]` fetched
- * 7,287 tweets across 284 pages, spending 328 requests and 10 guest tokens, to deliver
- * 9 results. The same free tier on a `fromUsers` run costs 3 requests. The cap was doing
- * its job in both cases; only one of them was affordable.
- *
- * So an unverified run also gets a request allowance proportional to what it may return.
- * At 10 results this is 100 requests — roughly 2,000 tweets scanned, generous for a
- * sample and two orders of magnitude below "however many accounts exist".
+ * So an unverified run is bounded on both axes. At 10 results the allowance is 100
+ * requests — roughly 2,000 tweets scanned, generous for a sample and two orders of
+ * magnitude below "however many accounts exist".
  */
 export const FREE_TIER_REQUESTS_PER_RESULT = 10;
 

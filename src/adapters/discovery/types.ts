@@ -8,7 +8,9 @@
  *
  *   - `DirectHandleDiscovery` — `fromUsers` was supplied; zero external calls.
  *   - `SeededTopicDiscovery`  — one search-engine lookup per topic term. [default]
- *   - `SearchIndexDiscovery`  — measured and rejected; documented, not shipped.
+ *
+ * A third strategy — index the web for tweet URLs and hydrate them by id — was built,
+ * measured and rejected before it shipped (README §2).
  *
  * Everything downstream — resolution, paging, normalization, filtering, the gate — is
  * 100% native X and does not know which strategy ran.

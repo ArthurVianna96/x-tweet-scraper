@@ -6,23 +6,17 @@ import type { ApifyClient } from 'apify-client';
  * Entitlement lookup (SPEC.md §4.1, §4.2). The *decision* lives in
  * `domain/entitlement.ts`; this is only how we obtain the record.
  *
- * Two non-obvious things are load-bearing here.
+ * Two things here are load-bearing, and both are argued in full in README §4.
  *
- * **Identity comes from the credential, not the claim.** `APIFY_USER_ID` is, per Apify's
- * own docs, "ID of the user who started the Actor" — an environment variable, which
- * brief §6 explicitly names as untrusted. `APIFY_TOKEN` is strictly stronger: it is a
- * credential the *authority* validates. Asking the platform "who does this token belong
- * to?" is self-validating — a forged token is either rejected (→ fail closed → free) or
- * genuinely someone else's (→ correctly returns their entitlement).
+ * **Identity comes from the credential, not the claim.** `APIFY_USER_ID` is an
+ * environment variable, which brief §6 names as untrusted. Asking the platform "who does
+ * this token belong to?" is self-validating: a forged token is either rejected (→ free)
+ * or genuinely someone else's (→ correctly returns their entitlement).
  *
- * **The store is public, and that is the design, not a compromise.** Inside a run,
- * `APIFY_TOKEN` belongs to the *runner*, so `Actor.getValue()` and the default key-value
- * store are authenticated as them — a private store on our account is unreachable from
- * inside the run. So the store is public-read and the authority is *write* access, which
- * stays ours. Public reads cannot change a verdict. Keys are HMAC'd so a world-readable
- * store leaks no customer IDs, and if the HMAC key ever leaked the attacker could
- * compute a key in a store that was already public — a smaller blast radius than the
- * alternative, where a leaked API token would let them grant themselves paid.
+ * **The store is public-read on purpose.** Inside a run, `APIFY_TOKEN` belongs to the
+ * *runner*, so a private store on our account is unreachable from the runs that need to
+ * read it. The authority is therefore *write* access, which stays ours; reads cannot
+ * change a verdict, and HMAC'd keys mean a world-readable store names nobody.
  */
 
 export interface EntitlementSourceOptions {
@@ -64,18 +58,17 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
 /**
  * Who is running this Actor — **asked of the platform, never read from a claim**.
  *
- * Two routes, because Apify runs Actors under scoped, limited-permission tokens: that
- * token is refused by `/users/me` with "Insufficient permissions", which took the primary
- * route out on the first deployed run while working perfectly in every local test.
+ * Two routes, because Apify runs deployed Actors under a scoped token that `/users/me`
+ * refuses with "Insufficient permissions". That took the primary route out on the first
+ * deployed run, having worked in every local test.
  *
- * The fallback keeps the §4.1 principle intact. `APIFY_ACTOR_RUN_ID` is an environment
- * variable and therefore an untrusted *claim* — but it is only used to name a resource,
- * and the answer comes from the API, which returns the run's real owner. Pointing it at
- * somebody else's run does not impersonate them: a run-scoped token may read its own run
- * and nothing else, so a forged id is refused and the verdict fails closed to free.
+ * The fallback keeps the §4.1 principle intact. `APIFY_ACTOR_RUN_ID` is an untrusted
+ * claim, but it only *names* a resource — the answer still comes from the API, which
+ * returns the run's real owner. A forged id is refused, because a run-scoped token may
+ * read its own run and nothing else, and the verdict fails closed to free.
  *
- * What we still refuse to do is read `APIFY_USER_ID` directly. That is a claim with no
- * authority behind it at all, and brief §6 names environment variables as untrusted.
+ * Reading `APIFY_USER_ID` directly stays out: that is a claim with no authority behind
+ * it at all.
  */
 async function resolveRunnerUserId(
   opts: EntitlementSourceOptions,
