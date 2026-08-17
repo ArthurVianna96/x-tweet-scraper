@@ -105,8 +105,8 @@ Of 23 operations probed on 2026-08-17, **five are open to guests**:
 | `TrendHistory`        | trend metadata, no tweets — _and newly permitted_                 |
 
 Everything else is `404`: `SearchTimeline`, `ListSearchTimeline`, `ExplorePage`,
-`TrendRelevantUsers`, `Followers`, `Following`, `SimilarPosts`, `TweetDetail`, `UserMedia`
-and every narrow timeline variant. That permitted set is not arbitrary — it is exactly
+`TrendRelevantUsers`, `Followers`, `Following`, `SimilarPosts`, `TweetDetail`, `UserMedia`,
+`UserOriginalsTimeline` and every other narrow timeline variant. That permitted set is not arbitrary — it is exactly
 what a logged-out browser can render: **one profile, or one tweet.** Search is not on it,
 and neither is anything adjacent to it. It also maps one-to-one onto the three required
 surfaces, which is the point: the doors that are open are exactly the ones the brief asks
@@ -553,10 +553,31 @@ new node that is slow too and charges for the privilege. The bottleneck is the p
 moment, not an individual node, and it is not ours to fix from inside the Actor. The change
 was reverted rather than kept as unproven complexity.
 
-What genuinely moves this number: fewer sequential pages. `@apify` is a pessimal benchmark
-target because it retweets heavily — with `includeRetweets: false` we fetch 216 tweets to
-push 100, so 12 pages instead of ~6. An author who posts mostly originals halves the chain,
-and a snapshot-mode author removes it entirely.
+### What does move it: fewer sequential pages
+
+If proxy latency is the multiplier, the length of the chain is the thing being multiplied.
+That is testable. The same account, same conditions, changing only one filter:
+
+| `@apify`, 100 items      | Pages | Selectivity | Median     | Worst  | Grade A   |
+| ------------------------ | ----- | ----------- | ---------- | ------ | --------- |
+| `includeRetweets: false` | 12    | 46%         | 33.2 s     | 85.1 s | 4 / 8     |
+| `includeRetweets: true`  | 8     | 69%         | **14.8 s** | 69.5 s | **7 / 8** |
+
+Counting retweets raises selectivity from 46% to 69%, which drops the chain from 12 pages
+to 8 and the median from 33.2 s to 14.8 s. Guest tokens drop from 2 to 1, because the
+shorter run fits inside one triple's rate-limit budget. The long tail does not disappear —
+one run still hit 69.5 s on the same 8 pages — which is the point: **the proxy sets the
+variance, the page count sets the scale.**
+
+Two honest qualifications. The brief's benchmark leaves `includeRetweets` at its default of
+`false`, so **4 / 8 is the number that answers the brief** and 7 / 8 is a diagnostic that
+attributes the cost. And this sample also drew better proxy luck than the baseline sample
+did, so the improvement is not purely the page count.
+
+It also names a limitation rather than a fix. On a retweet-heavy account the default
+filters make us fetch 216 tweets to keep 100, and there is no guest-reachable way to avoid
+it: `UserOriginalsTimeline` — the operation that would let us ask X for originals only — is
+one of the `404`s in §1. We pay for what we discard because the filtered surface is closed.
 
 The two `searchTerms` paths cost very different amounts, and the gap is the architecture
 stating its own limitation. Measured 2026-08-17 on macOS with **no proxy**:
@@ -903,9 +924,10 @@ production.
   own relevance ranking is not reproducible from the guest surface.
 - **On a paginated author the benchmark is proxy-bound, and Grade A is not guaranteed.**
   Measured 4 of 8 runs under 30 s, median 33.2 s, on constant work (§5). A single cursor
-  chain is sequential by construction, so residential-proxy latency multiplies across
-  every page. We tried rotating away from slow nodes and measured no improvement; the
-  honest statement is that this variance is the proxy pool, not the code.
+  chain is sequential by construction, so residential-proxy latency multiplies across every
+  page. We tried rotating away from slow nodes and measured no improvement. Shortening the
+  chain does help — counting retweets takes it to 7 of 8 — but the tail stays, because the
+  proxy sets the variance and only the page count is ours to influence.
 - **Fixtures cannot detect X changing its response shape.** The suite is offline and
   deterministic by choice, and the price of that choice is that these tests stay green
   while production breaks. In a production system you close this with a scheduled,
