@@ -1,0 +1,705 @@
+{
+  "_capturedFrom": "@apify",
+  "_capturedAt": "2026-08-17T13:17:03.294Z",
+  "tweet": {
+    "__typename": "Tweet",
+    "cashtag_attachments": [],
+    "core": {
+      "user_results": {
+        "result": {
+          "__typename": "User",
+          "action_counts": {
+            "favorites_count": 4107
+          },
+          "affiliates_highlighted_label": {},
+          "avatar": {
+            "image_url": "https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png"
+          },
+          "banner": {
+            "image_url": "https://pbs.twimg.com/profile_banners/3510729917/1784551662"
+          },
+          "can_pay": false,
+          "core": {
+            "created_at": "Tue Sep 01 08:38:01 +0000 2015",
+            "name": "Apify",
+            "screen_name": "apify"
+          },
+          "dm_permissions": {
+            "can_dm": false
+          },
+          "follow_request_sent": false,
+          "has_graduated_access": true,
+          "id": "VXNlcjozNTEwNzI5OTE3",
+          "is_blue_verified": false,
+          "location": {
+            "location": "The Interwebz"
+          },
+          "media_permissions": {
+            "can_media_tag": false
+          },
+          "notifications_settings": {
+            "notifications_enabled": false
+          },
+          "parody_commentary_fan_label": "None",
+          "pinned_items": {
+            "tweet_ids_str": [
+              "2087572956683567110"
+            ]
+          },
+          "possibly_sensitive": false,
+          "privacy": {
+            "protected": false
+          },
+          "professional": {
+            "category": [],
+            "professional_type": "Business",
+            "rest_id": "1583013496266137600"
+          },
+          "profile_bio": {
+            "description": "Thousands of Actors to automate your business, get real-time web data, and integrate your apps and agents.  ➡️  https://t.co/rySkh8qnak • https://t.co/PiUfLvrTQ2 • https://t.co/x4G1meKY5i",
+            "entities": {
+              "description": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "http://apify.com",
+                    "indices": [
+                      112,
+                      135
+                    ],
+                    "url": "https://t.co/rySkh8qnak"
+                  },
+                  {
+                    "display_url": "mcp.apify.com",
+                    "expanded_url": "http://mcp.apify.com",
+                    "indices": [
+                      138,
+                      161
+                    ],
+                    "url": "https://t.co/PiUfLvrTQ2"
+                  },
+                  {
+                    "display_url": "github.com/apify",
+                    "expanded_url": "http://github.com/apify",
+                    "indices": [
+                      164,
+                      187
+                    ],
+                    "url": "https://t.co/x4G1meKY5i"
+                  }
+                ]
+              },
+              "url": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "https://apify.com",
+                    "indices": [
+                      0,
+                      23
+                    ],
+                    "url": "https://t.co/VWktFqWRhX"
+                  }
+                ]
+              }
+            }
+          },
+          "profile_description_language": "en",
+          "profile_image_shape": "Square",
+          "profile_metadata": {
+            "profile_interstitial_type": ""
+          },
+          "profile_translation": {
+            "translator_type": "none"
+          },
+          "relationship_counts": {
+            "followers": 11840,
+            "following": 296
+          },
+          "relationship_perspectives": {
+            "blocked_by": false,
+            "blocking": false,
+            "followed_by": false,
+            "following": false,
+            "live_following": false,
+            "muting": false
+          },
+          "rest_id": "3510729917",
+          "super_follow_eligible": false,
+          "super_followed_by": false,
+          "super_following": false,
+          "tipjar_settings": {
+            "bandcamp_handle": "",
+            "bitcoin_handle": "",
+            "cash_app_handle": "",
+            "ethereum_handle": "",
+            "gofundme_handle": "",
+            "is_enabled": false,
+            "patreon_handle": "",
+            "pay_pal_handle": "",
+            "venmo_handle": ""
+          },
+          "tweet_counts": {
+            "media_tweets": 1154,
+            "tweets": 4632
+          },
+          "verification": {
+            "verified": false,
+            "verified_type": "Business"
+          },
+          "verified_phone_status": false,
+          "website": {
+            "url": "https://t.co/VWktFqWRhX"
+          }
+        }
+      }
+    },
+    "disallowed_reply_controls": [],
+    "edit_control": {
+      "edit_tweet_ids": [
+        "2088269104876564895"
+      ],
+      "editable_until_msecs": "1786720727000",
+      "edits_remaining": "5",
+      "is_edit_eligible": true
+    },
+    "grok_analysis_button": true,
+    "grok_annotations": {
+      "is_image_editable_by_grok": true
+    },
+    "grok_translated_post_with_availability": {
+      "is_available": false
+    },
+    "is_translatable": false,
+    "legacy": {
+      "bookmark_count": 1,
+      "bookmarked": false,
+      "conversation_id_str": "2088269104876564895",
+      "created_at": "Fri Aug 14 14:18:47 +0000 2026",
+      "display_text_range": [
+        0,
+        267
+      ],
+      "entities": {
+        "user_mentions": [
+          {
+            "id_str": "40148479",
+            "indices": [
+              2,
+              11
+            ],
+            "name": "WhatsApp",
+            "screen_name": "WhatsApp"
+          },
+          {
+            "id_str": "248742423",
+            "indices": [
+              87,
+              101
+            ],
+            "name": "Matthew Berman",
+            "screen_name": "TheMattBerman"
+          }
+        ]
+      },
+      "favorite_count": 4,
+      "favorited": false,
+      "full_text": "A @WhatsApp group full of unsorted flyers and links doesn't look like a data source. \n\n@TheMattBerman built a pipeline around it anyway: Apify pulls the raw content out first, then scoring and rewriting turn it into a newsletter, all for $84 a month. \n\nCheck it out 👇",
+      "id_str": "2088269104876564895",
+      "is_quote_status": true,
+      "lang": "en",
+      "quote_count": 0,
+      "quoted_status_id_str": "2087230578957431099",
+      "quoted_status_permalink": {
+        "display": "x.com/TheMattBerman/…",
+        "expanded": "https://twitter.com/TheMattBerman/status/2087230578957431099",
+        "url": "https://t.co/aJamMDe49t"
+      },
+      "reply_count": 2,
+      "retweet_count": 1,
+      "retweeted": false,
+      "user_id_str": "3510729917"
+    },
+    "quoted_status_result": {
+      "result": {
+        "__typename": "Tweet",
+        "core": {
+          "user_results": {
+            "result": {
+              "__typename": "User",
+              "action_counts": {
+                "favorites_count": 9028
+              },
+              "affiliates_highlighted_label": {},
+              "avatar": {
+                "image_url": "https://pbs.twimg.com/profile_images/1986926744515805184/h-houqBr_normal.jpg"
+              },
+              "banner": {
+                "image_url": "https://pbs.twimg.com/profile_banners/248742423/1373675323"
+              },
+              "can_pay": true,
+              "core": {
+                "created_at": "Mon Feb 07 16:44:40 +0000 2011",
+                "name": "Matthew Berman",
+                "screen_name": "TheMattBerman"
+              },
+              "dm_permissions": {
+                "can_dm": false
+              },
+              "follow_request_sent": false,
+              "has_graduated_access": true,
+              "id": "VXNlcjoyNDg3NDI0MjM=",
+              "is_blue_verified": true,
+              "location": {
+                "location": "New Orleans, LA"
+              },
+              "media_permissions": {
+                "can_media_tag": false
+              },
+              "notifications_settings": {
+                "notifications_enabled": false
+              },
+              "parody_commentary_fan_label": "None",
+              "pinned_items": {
+                "tweet_ids_str": [
+                  "2039837882483974288"
+                ]
+              },
+              "possibly_sensitive": false,
+              "privacy": {
+                "protected": false
+              },
+              "professional": {
+                "category": [
+                  {
+                    "icon_name": "IconBriefcaseStroke",
+                    "id": 958,
+                    "name": "Entrepreneur"
+                  }
+                ],
+                "professional_type": "Business",
+                "rest_id": "1790243079246455205"
+              },
+              "profile_bio": {
+                "description": "i scaled the brands that you use every weekend 🍹 | building @EmeraldDigital_ @stealads",
+                "entities": {
+                  "description": {},
+                  "url": {
+                    "urls": [
+                      {
+                        "display_url": "bigplayers.co/subscribe",
+                        "expanded_url": "https://www.bigplayers.co/subscribe",
+                        "indices": [
+                          0,
+                          23
+                        ],
+                        "url": "https://t.co/s3PIGSRqfD"
+                      }
+                    ]
+                  }
+                }
+              },
+              "profile_description_language": "en",
+              "profile_image_shape": "Circle",
+              "profile_metadata": {
+                "profile_interstitial_type": ""
+              },
+              "profile_translation": {
+                "translator_type": "none"
+              },
+              "relationship_counts": {
+                "followers": 11597,
+                "following": 393
+              },
+              "relationship_perspectives": {
+                "blocked_by": false,
+                "blocking": false,
+                "followed_by": false,
+                "following": false,
+                "live_following": false,
+                "muting": false
+              },
+              "rest_id": "248742423",
+              "super_follow_eligible": false,
+              "super_followed_by": false,
+              "super_following": false,
+              "tipjar_settings": {
+                "bandcamp_handle": "",
+                "bitcoin_handle": "",
+                "cash_app_handle": "",
+                "ethereum_handle": "",
+                "gofundme_handle": "",
+                "is_enabled": false,
+                "patreon_handle": "",
+                "pay_pal_handle": "",
+                "venmo_handle": ""
+              },
+              "tweet_counts": {
+                "media_tweets": 1707,
+                "tweets": 7925
+              },
+              "verification": {
+                "verified": false
+              },
+              "verified_phone_status": false,
+              "website": {
+                "url": "https://t.co/s3PIGSRqfD"
+              }
+            }
+          }
+        },
+        "disallowed_reply_controls": [],
+        "edit_control": {
+          "edit_tweet_ids": [
+            "2087230578957431099"
+          ],
+          "editable_until_msecs": "1786473123000",
+          "edits_remaining": "5",
+          "is_edit_eligible": true
+        },
+        "grok_analysis_button": true,
+        "grok_translated_post_with_availability": {
+          "is_available": false
+        },
+        "is_translatable": false,
+        "legacy": {
+          "bookmark_count": 15,
+          "bookmarked": false,
+          "conversation_id_str": "2087230578957431099",
+          "created_at": "Tue Aug 11 17:32:03 +0000 2026",
+          "display_text_range": [
+            0,
+            273
+          ],
+          "entities": {
+            "media": [
+              {
+                "display_url": "pic.x.com/h4hV8HdisI",
+                "expanded_url": "https://x.com/TheMattBerman/status/2087230578957431099/photo/1",
+                "ext_media_availability": {
+                  "status": "Available"
+                },
+                "features": {
+                  "large": {
+                    "faces": []
+                  },
+                  "medium": {
+                    "faces": []
+                  },
+                  "orig": {
+                    "faces": []
+                  },
+                  "small": {
+                    "faces": []
+                  }
+                },
+                "id_str": "2087230506244980737",
+                "indices": [
+                  274,
+                  297
+                ],
+                "media_key": "3_2087230506244980737",
+                "media_results": {
+                  "result": {
+                    "media_key": "3_2087230506244980737"
+                  }
+                },
+                "media_url_https": "https://pbs.twimg.com/media/HPdVFjkXQAEHVaR.png",
+                "original_info": {
+                  "focus_rects": [
+                    {
+                      "h": 605,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 745
+                    },
+                    {
+                      "h": 1080,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 270
+                    },
+                    {
+                      "h": 1231,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 119
+                    },
+                    {
+                      "h": 1350,
+                      "w": 675,
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "h": 1350,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 0
+                    }
+                  ],
+                  "height": 1350,
+                  "width": 1080
+                },
+                "sizes": {
+                  "large": {
+                    "h": 1350,
+                    "resize": "fit",
+                    "w": 1080
+                  },
+                  "medium": {
+                    "h": 1200,
+                    "resize": "fit",
+                    "w": 960
+                  },
+                  "small": {
+                    "h": 680,
+                    "resize": "fit",
+                    "w": 544
+                  },
+                  "thumb": {
+                    "h": 150,
+                    "resize": "crop",
+                    "w": 150
+                  }
+                },
+                "type": "photo",
+                "url": "https://t.co/h4hV8HdisI"
+              }
+            ],
+            "user_mentions": [
+              {
+                "id_str": "3510729917",
+                "indices": [
+                  57,
+                  63
+                ],
+                "name": "Apify",
+                "screen_name": "apify"
+              },
+              {
+                "id_str": "257245904",
+                "indices": [
+                  238,
+                  244
+                ],
+                "name": "Brave",
+                "screen_name": "brave"
+              },
+              {
+                "id_str": "1796642877172551682",
+                "indices": [
+                  247,
+                  257
+                ],
+                "name": "Firecrawl",
+                "screen_name": "firecrawl"
+              }
+            ]
+          },
+          "extended_entities": {
+            "media": [
+              {
+                "display_url": "pic.x.com/h4hV8HdisI",
+                "expanded_url": "https://x.com/TheMattBerman/status/2087230578957431099/photo/1",
+                "ext_media_availability": {
+                  "status": "Available"
+                },
+                "features": {
+                  "large": {
+                    "faces": []
+                  },
+                  "medium": {
+                    "faces": []
+                  },
+                  "orig": {
+                    "faces": []
+                  },
+                  "small": {
+                    "faces": []
+                  }
+                },
+                "id_str": "2087230506244980737",
+                "indices": [
+                  274,
+                  297
+                ],
+                "media_key": "3_2087230506244980737",
+                "media_results": {
+                  "result": {
+                    "media_key": "3_2087230506244980737"
+                  }
+                },
+                "media_url_https": "https://pbs.twimg.com/media/HPdVFjkXQAEHVaR.png",
+                "original_info": {
+                  "focus_rects": [
+                    {
+                      "h": 605,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 745
+                    },
+                    {
+                      "h": 1080,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 270
+                    },
+                    {
+                      "h": 1231,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 119
+                    },
+                    {
+                      "h": 1350,
+                      "w": 675,
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "h": 1350,
+                      "w": 1080,
+                      "x": 0,
+                      "y": 0
+                    }
+                  ],
+                  "height": 1350,
+                  "width": 1080
+                },
+                "sizes": {
+                  "large": {
+                    "h": 1350,
+                    "resize": "fit",
+                    "w": 1080
+                  },
+                  "medium": {
+                    "h": 1200,
+                    "resize": "fit",
+                    "w": 960
+                  },
+                  "small": {
+                    "h": 680,
+                    "resize": "fit",
+                    "w": 544
+                  },
+                  "thumb": {
+                    "h": 150,
+                    "resize": "crop",
+                    "w": 150
+                  }
+                },
+                "type": "photo",
+                "url": "https://t.co/h4hV8HdisI"
+              }
+            ]
+          },
+          "favorite_count": 9,
+          "favorited": false,
+          "full_text": "how to run an automated local media brand on $84/mo:\n\n1/ @apify scrapes text, flyers, and links straight from WhatsApp groups. luna extracts the details\n\n2/ scoring prompt runs for audience fit and organizes into SEND, SAVE, or SKIP \n\n3/ @Brave + @firecrawl get any missing https://t.co/h4hV8HdisI",
+          "id_str": "2087230578957431099",
+          "is_quote_status": false,
+          "lang": "en",
+          "possibly_sensitive": false,
+          "possibly_sensitive_editable": true,
+          "quote_count": 2,
+          "reply_count": 1,
+          "retweet_count": 0,
+          "retweeted": false,
+          "user_id_str": "248742423"
+        },
+        "note_tweet": {
+          "is_expandable": true,
+          "note_tweet_results": {
+            "result": {
+              "entity_set": {
+                "hashtags": [],
+                "smarttags": [],
+                "symbols": [],
+                "urls": [],
+                "user_mentions": [
+                  {
+                    "id_str": "3510729917",
+                    "indices": [
+                      57,
+                      63
+                    ],
+                    "name": "Apify",
+                    "screen_name": "apify"
+                  },
+                  {
+                    "id_str": "257245904",
+                    "indices": [
+                      238,
+                      244
+                    ],
+                    "name": "Brave",
+                    "screen_name": "Brave"
+                  },
+                  {
+                    "id_str": "1796642877172551682",
+                    "indices": [
+                      247,
+                      257
+                    ],
+                    "name": "Firecrawl",
+                    "screen_name": "firecrawl"
+                  },
+                  {
+                    "id_str": "2041877793726722048",
+                    "indices": [
+                      316,
+                      331
+                    ],
+                    "name": "Scrape Creators",
+                    "screen_name": "ScrapeCreators"
+                  },
+                  {
+                    "id_str": "403930194",
+                    "indices": [
+                      468,
+                      476
+                    ],
+                    "name": "Webflow",
+                    "screen_name": "Webflow"
+                  },
+                  {
+                    "id_str": "1352439395903791106",
+                    "indices": [
+                      526,
+                      534
+                    ],
+                    "name": "beehiiv 🐝",
+                    "screen_name": "beehiiv"
+                  }
+                ]
+              },
+              "id": "Tm90ZVR3ZWV0OjIwODcyMzA1Nzg4NDg0MTk4NDA=",
+              "media": {
+                "inline_media": []
+              },
+              "richtext": {
+                "richtext_tags": []
+              },
+              "text": "how to run an automated local media brand on $84/mo:\n\n1/ @apify scrapes text, flyers, and links straight from WhatsApp groups. luna extracts the details\n\n2/ scoring prompt runs for audience fit and organizes into SEND, SAVE, or SKIP \n\n3/ @Brave + @firecrawl get any missing addresses, map links and ticket links\n\n4/ @ScrapeCreators grabs the organizers socials from Insta + TikTok\n\n5/ Sonnet rewrites the raw scraped copy into brand voice + adds map/calendar/tags\n\n6/ @Webflow MCP pushes live events to your calendar site\n\n7/ @beehiiv MCP drafts the top 7 events into your weekly newsletter template\n\n8/ 72-hour click metrics auto-feed back into the step 2 scoring engine to improve next week's picks"
+            }
+          }
+        },
+        "rest_id": "2087230578957431099",
+        "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+        "unmention_data": {},
+        "views": {
+          "count": "2056",
+          "state": "EnabledWithCount"
+        }
+      }
+    },
+    "rest_id": "2088269104876564895",
+    "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+    "unmention_data": {},
+    "views": {
+      "count": "906",
+      "state": "EnabledWithCount"
+    }
+  }
+}

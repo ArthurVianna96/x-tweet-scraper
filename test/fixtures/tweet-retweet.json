@@ -1,0 +1,845 @@
+{
+  "_capturedFrom": "@apify",
+  "_capturedAt": "2026-08-17T13:17:03.293Z",
+  "tweet": {
+    "__typename": "Tweet",
+    "cashtag_attachments": [],
+    "core": {
+      "user_results": {
+        "result": {
+          "__typename": "User",
+          "action_counts": {
+            "favorites_count": 4107
+          },
+          "affiliates_highlighted_label": {},
+          "avatar": {
+            "image_url": "https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png"
+          },
+          "banner": {
+            "image_url": "https://pbs.twimg.com/profile_banners/3510729917/1784551662"
+          },
+          "can_pay": false,
+          "core": {
+            "created_at": "Tue Sep 01 08:38:01 +0000 2015",
+            "name": "Apify",
+            "screen_name": "apify"
+          },
+          "dm_permissions": {
+            "can_dm": false
+          },
+          "follow_request_sent": false,
+          "has_graduated_access": true,
+          "id": "VXNlcjozNTEwNzI5OTE3",
+          "is_blue_verified": false,
+          "location": {
+            "location": "The Interwebz"
+          },
+          "media_permissions": {
+            "can_media_tag": false
+          },
+          "notifications_settings": {
+            "notifications_enabled": false
+          },
+          "parody_commentary_fan_label": "None",
+          "pinned_items": {
+            "tweet_ids_str": [
+              "2087572956683567110"
+            ]
+          },
+          "possibly_sensitive": false,
+          "privacy": {
+            "protected": false
+          },
+          "professional": {
+            "category": [],
+            "professional_type": "Business",
+            "rest_id": "1583013496266137600"
+          },
+          "profile_bio": {
+            "description": "Thousands of Actors to automate your business, get real-time web data, and integrate your apps and agents.  ➡️  https://t.co/rySkh8qnak • https://t.co/PiUfLvrTQ2 • https://t.co/x4G1meKY5i",
+            "entities": {
+              "description": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "http://apify.com",
+                    "indices": [
+                      112,
+                      135
+                    ],
+                    "url": "https://t.co/rySkh8qnak"
+                  },
+                  {
+                    "display_url": "mcp.apify.com",
+                    "expanded_url": "http://mcp.apify.com",
+                    "indices": [
+                      138,
+                      161
+                    ],
+                    "url": "https://t.co/PiUfLvrTQ2"
+                  },
+                  {
+                    "display_url": "github.com/apify",
+                    "expanded_url": "http://github.com/apify",
+                    "indices": [
+                      164,
+                      187
+                    ],
+                    "url": "https://t.co/x4G1meKY5i"
+                  }
+                ]
+              },
+              "url": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "https://apify.com",
+                    "indices": [
+                      0,
+                      23
+                    ],
+                    "url": "https://t.co/VWktFqWRhX"
+                  }
+                ]
+              }
+            }
+          },
+          "profile_description_language": "en",
+          "profile_image_shape": "Square",
+          "profile_metadata": {
+            "profile_interstitial_type": ""
+          },
+          "profile_translation": {
+            "translator_type": "none"
+          },
+          "relationship_counts": {
+            "followers": 11840,
+            "following": 296
+          },
+          "relationship_perspectives": {
+            "blocked_by": false,
+            "blocking": false,
+            "followed_by": false,
+            "following": false,
+            "live_following": false,
+            "muting": false
+          },
+          "rest_id": "3510729917",
+          "super_follow_eligible": false,
+          "super_followed_by": false,
+          "super_following": false,
+          "tipjar_settings": {
+            "bandcamp_handle": "",
+            "bitcoin_handle": "",
+            "cash_app_handle": "",
+            "ethereum_handle": "",
+            "gofundme_handle": "",
+            "is_enabled": false,
+            "patreon_handle": "",
+            "pay_pal_handle": "",
+            "venmo_handle": ""
+          },
+          "tweet_counts": {
+            "media_tweets": 1154,
+            "tweets": 4632
+          },
+          "verification": {
+            "verified": false,
+            "verified_type": "Business"
+          },
+          "verified_phone_status": false,
+          "website": {
+            "url": "https://t.co/VWktFqWRhX"
+          }
+        }
+      }
+    },
+    "disallowed_reply_controls": [],
+    "edit_control": {
+      "edit_tweet_ids": [
+        "2088525549626867786"
+      ],
+      "editable_until_msecs": "1786781868616",
+      "edits_remaining": "5",
+      "is_edit_eligible": false
+    },
+    "grok_analysis_button": true,
+    "grok_annotations": {},
+    "grok_translated_post_with_availability": {
+      "is_available": false
+    },
+    "is_translatable": false,
+    "legacy": {
+      "bookmark_count": 0,
+      "bookmarked": false,
+      "conversation_id_str": "2088525549626867786",
+      "created_at": "Sat Aug 15 07:17:48 +0000 2026",
+      "display_text_range": [
+        0,
+        72
+      ],
+      "entities": {
+        "media": [
+          {
+            "allow_download_status": {
+              "allow_download": true
+            },
+            "display_url": "pic.x.com/AGDGlM1pPm",
+            "expanded_url": "https://x.com/maximehugodupre/status/2088359637460394114/photo/1",
+            "ext_media_availability": {
+              "status": "Available"
+            },
+            "features": {
+              "large": {
+                "faces": []
+              },
+              "medium": {
+                "faces": []
+              },
+              "orig": {
+                "faces": []
+              },
+              "small": {
+                "faces": []
+              }
+            },
+            "id_str": "2088359634515976192",
+            "indices": [
+              49,
+              72
+            ],
+            "media_key": "3_2088359634515976192",
+            "media_results": {
+              "result": {
+                "media_key": "3_2088359634515976192"
+              }
+            },
+            "media_url_https": "https://pbs.twimg.com/media/HPtYBeKW4AAAbhh.jpg",
+            "original_info": {
+              "focus_rects": [
+                {
+                  "h": 645,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 1152,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 1313,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 2048,
+                  "w": 1024,
+                  "x": 51,
+                  "y": 0
+                },
+                {
+                  "h": 2048,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                }
+              ],
+              "height": 2048,
+              "width": 1152
+            },
+            "sizes": {
+              "large": {
+                "h": 2048,
+                "resize": "fit",
+                "w": 1152
+              },
+              "medium": {
+                "h": 1200,
+                "resize": "fit",
+                "w": 675
+              },
+              "small": {
+                "h": 680,
+                "resize": "fit",
+                "w": 383
+              },
+              "thumb": {
+                "h": 150,
+                "resize": "crop",
+                "w": 150
+              }
+            },
+            "source_status_id_str": "2088359637460394114",
+            "source_user_id_str": "3358091321",
+            "type": "photo",
+            "url": "https://t.co/AGDGlM1pPm"
+          }
+        ],
+        "user_mentions": [
+          {
+            "id_str": "3358091321",
+            "indices": [
+              3,
+              19
+            ],
+            "name": "Maxime Dupré",
+            "screen_name": "maximehugodupre"
+          },
+          {
+            "id_str": "3510729917",
+            "indices": [
+              35,
+              41
+            ],
+            "name": "Apify",
+            "screen_name": "apify"
+          }
+        ]
+      },
+      "extended_entities": {
+        "media": [
+          {
+            "allow_download_status": {
+              "allow_download": true
+            },
+            "display_url": "pic.x.com/AGDGlM1pPm",
+            "expanded_url": "https://x.com/maximehugodupre/status/2088359637460394114/photo/1",
+            "ext_media_availability": {
+              "status": "Available"
+            },
+            "features": {
+              "large": {
+                "faces": []
+              },
+              "medium": {
+                "faces": []
+              },
+              "orig": {
+                "faces": []
+              },
+              "small": {
+                "faces": []
+              }
+            },
+            "id_str": "2088359634515976192",
+            "indices": [
+              49,
+              72
+            ],
+            "media_key": "3_2088359634515976192",
+            "media_results": {
+              "result": {
+                "media_key": "3_2088359634515976192"
+              }
+            },
+            "media_url_https": "https://pbs.twimg.com/media/HPtYBeKW4AAAbhh.jpg",
+            "original_info": {
+              "focus_rects": [
+                {
+                  "h": 645,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 1152,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 1313,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "h": 2048,
+                  "w": 1024,
+                  "x": 51,
+                  "y": 0
+                },
+                {
+                  "h": 2048,
+                  "w": 1152,
+                  "x": 0,
+                  "y": 0
+                }
+              ],
+              "height": 2048,
+              "width": 1152
+            },
+            "sizes": {
+              "large": {
+                "h": 2048,
+                "resize": "fit",
+                "w": 1152
+              },
+              "medium": {
+                "h": 1200,
+                "resize": "fit",
+                "w": 675
+              },
+              "small": {
+                "h": 680,
+                "resize": "fit",
+                "w": 383
+              },
+              "thumb": {
+                "h": 150,
+                "resize": "crop",
+                "w": 150
+              }
+            },
+            "source_status_id_str": "2088359637460394114",
+            "source_user_id_str": "3358091321",
+            "type": "photo",
+            "url": "https://t.co/AGDGlM1pPm"
+          }
+        ]
+      },
+      "favorite_count": 0,
+      "favorited": false,
+      "full_text": "RT @maximehugodupre: Just got some @apify swag 👅 https://t.co/AGDGlM1pPm",
+      "id_str": "2088525549626867786",
+      "is_quote_status": false,
+      "lang": "en",
+      "possibly_sensitive": false,
+      "possibly_sensitive_editable": true,
+      "quote_count": 0,
+      "reply_count": 0,
+      "retweet_count": 1,
+      "retweeted": false,
+      "retweeted_status_result": {
+        "result": {
+          "__typename": "Tweet",
+          "cashtag_attachments": [],
+          "core": {
+            "user_results": {
+              "result": {
+                "__typename": "User",
+                "action_counts": {
+                  "favorites_count": 69071
+                },
+                "affiliates_highlighted_label": {},
+                "avatar": {
+                  "image_url": "https://pbs.twimg.com/profile_images/2047792702469857280/sLYKnW6B_normal.jpg"
+                },
+                "banner": {
+                  "image_url": "https://pbs.twimg.com/profile_banners/3358091321/1777068534"
+                },
+                "can_pay": false,
+                "core": {
+                  "created_at": "Sat Jul 04 05:03:09 +0000 2015",
+                  "name": "Maxime Dupré",
+                  "screen_name": "maximehugodupre"
+                },
+                "dm_permissions": {
+                  "can_dm": false
+                },
+                "follow_request_sent": false,
+                "has_graduated_access": true,
+                "id": "VXNlcjozMzU4MDkxMzIx",
+                "is_blue_verified": true,
+                "location": {
+                  "location": "⚜️"
+                },
+                "media_permissions": {
+                  "can_media_tag": false
+                },
+                "notifications_settings": {
+                  "notifications_enabled": false
+                },
+                "parody_commentary_fan_label": "None",
+                "pinned_items": {
+                  "tweet_ids_str": [
+                    "1975978648881762450"
+                  ]
+                },
+                "possibly_sensitive": false,
+                "privacy": {
+                  "protected": false
+                },
+                "professional": {
+                  "category": [],
+                  "professional_type": "Creator",
+                  "rest_id": "1456000538848415749"
+                },
+                "profile_bio": {
+                  "description": "🔎 https://t.co/6C4SF6JEyv (Grow your Apify portfolio)\n🕷️ https://t.co/Wz4HfkH9xD (Scrape data & leads)\n👀 https://t.co/YzPDBgRQSd (Track competitors)\n🎙️ https://t.co/2jfmXqtkWd ($7K exit)",
+                  "entities": {
+                    "description": {
+                      "urls": [
+                        {
+                          "display_url": "ActorHunt.com",
+                          "expanded_url": "http://ActorHunt.com",
+                          "indices": [
+                            2,
+                            25
+                          ],
+                          "url": "https://t.co/6C4SF6JEyv"
+                        },
+                        {
+                          "display_url": "apify.com/maximedupre",
+                          "expanded_url": "http://apify.com/maximedupre",
+                          "indices": [
+                            57,
+                            80
+                          ],
+                          "url": "https://t.co/Wz4HfkH9xD"
+                        },
+                        {
+                          "display_url": "ChampSignal.com",
+                          "expanded_url": "http://ChampSignal.com",
+                          "indices": [
+                            105,
+                            128
+                          ],
+                          "url": "https://t.co/YzPDBgRQSd"
+                        },
+                        {
+                          "display_url": "TTSVibes.com",
+                          "expanded_url": "http://TTSVibes.com",
+                          "indices": [
+                            152,
+                            175
+                          ],
+                          "url": "https://t.co/2jfmXqtkWd"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "urls": [
+                        {
+                          "display_url": "maximedup.re",
+                          "expanded_url": "http://maximedup.re",
+                          "indices": [
+                            0,
+                            23
+                          ],
+                          "url": "https://t.co/bd3JF82Z5L"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "profile_image_shape": "Circle",
+                "profile_metadata": {
+                  "profile_interstitial_type": ""
+                },
+                "profile_translation": {
+                  "translator_type": "none"
+                },
+                "relationship_counts": {
+                  "followers": 15467,
+                  "following": 256
+                },
+                "relationship_perspectives": {
+                  "blocked_by": false,
+                  "blocking": false,
+                  "followed_by": false,
+                  "following": false,
+                  "live_following": false,
+                  "muting": false
+                },
+                "rest_id": "3358091321",
+                "super_follow_eligible": false,
+                "super_followed_by": false,
+                "super_following": false,
+                "tipjar_settings": {
+                  "bandcamp_handle": "",
+                  "bitcoin_handle": "",
+                  "cash_app_handle": "",
+                  "ethereum_handle": "",
+                  "gofundme_handle": "",
+                  "is_enabled": false,
+                  "patreon_handle": "",
+                  "pay_pal_handle": "",
+                  "venmo_handle": ""
+                },
+                "tweet_counts": {
+                  "media_tweets": 2034,
+                  "tweets": 33849
+                },
+                "verification": {
+                  "verified": false
+                },
+                "verified_phone_status": false,
+                "website": {
+                  "url": "https://t.co/bd3JF82Z5L"
+                }
+              }
+            }
+          },
+          "disallowed_reply_controls": [],
+          "edit_control": {
+            "edit_tweet_ids": [
+              "2088359637460394114"
+            ],
+            "editable_until_msecs": "1786742312000",
+            "edits_remaining": "5",
+            "is_edit_eligible": true
+          },
+          "grok_analysis_button": true,
+          "grok_translated_post_with_availability": {
+            "is_available": false
+          },
+          "is_translatable": false,
+          "legacy": {
+            "bookmark_count": 1,
+            "bookmarked": false,
+            "conversation_id_str": "2088359637460394114",
+            "created_at": "Fri Aug 14 20:18:32 +0000 2026",
+            "display_text_range": [
+              0,
+              27
+            ],
+            "entities": {
+              "media": [
+                {
+                  "allow_download_status": {
+                    "allow_download": true
+                  },
+                  "display_url": "pic.x.com/AGDGlM1pPm",
+                  "expanded_url": "https://x.com/maximehugodupre/status/2088359637460394114/photo/1",
+                  "ext_media_availability": {
+                    "status": "Available"
+                  },
+                  "features": {
+                    "large": {
+                      "faces": []
+                    },
+                    "medium": {
+                      "faces": []
+                    },
+                    "orig": {
+                      "faces": []
+                    },
+                    "small": {
+                      "faces": []
+                    }
+                  },
+                  "id_str": "2088359634515976192",
+                  "indices": [
+                    28,
+                    51
+                  ],
+                  "media_key": "3_2088359634515976192",
+                  "media_results": {
+                    "result": {
+                      "media_key": "3_2088359634515976192"
+                    }
+                  },
+                  "media_url_https": "https://pbs.twimg.com/media/HPtYBeKW4AAAbhh.jpg",
+                  "original_info": {
+                    "focus_rects": [
+                      {
+                        "h": 645,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 1152,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 1313,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 2048,
+                        "w": 1024,
+                        "x": 51,
+                        "y": 0
+                      },
+                      {
+                        "h": 2048,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      }
+                    ],
+                    "height": 2048,
+                    "width": 1152
+                  },
+                  "sizes": {
+                    "large": {
+                      "h": 2048,
+                      "resize": "fit",
+                      "w": 1152
+                    },
+                    "medium": {
+                      "h": 1200,
+                      "resize": "fit",
+                      "w": 675
+                    },
+                    "small": {
+                      "h": 680,
+                      "resize": "fit",
+                      "w": 383
+                    },
+                    "thumb": {
+                      "h": 150,
+                      "resize": "crop",
+                      "w": 150
+                    }
+                  },
+                  "type": "photo",
+                  "url": "https://t.co/AGDGlM1pPm"
+                }
+              ],
+              "user_mentions": [
+                {
+                  "id_str": "3510729917",
+                  "indices": [
+                    14,
+                    20
+                  ],
+                  "name": "Apify",
+                  "screen_name": "apify"
+                }
+              ]
+            },
+            "extended_entities": {
+              "media": [
+                {
+                  "allow_download_status": {
+                    "allow_download": true
+                  },
+                  "display_url": "pic.x.com/AGDGlM1pPm",
+                  "expanded_url": "https://x.com/maximehugodupre/status/2088359637460394114/photo/1",
+                  "ext_media_availability": {
+                    "status": "Available"
+                  },
+                  "features": {
+                    "large": {
+                      "faces": []
+                    },
+                    "medium": {
+                      "faces": []
+                    },
+                    "orig": {
+                      "faces": []
+                    },
+                    "small": {
+                      "faces": []
+                    }
+                  },
+                  "id_str": "2088359634515976192",
+                  "indices": [
+                    28,
+                    51
+                  ],
+                  "media_key": "3_2088359634515976192",
+                  "media_results": {
+                    "result": {
+                      "media_key": "3_2088359634515976192"
+                    }
+                  },
+                  "media_url_https": "https://pbs.twimg.com/media/HPtYBeKW4AAAbhh.jpg",
+                  "original_info": {
+                    "focus_rects": [
+                      {
+                        "h": 645,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 1152,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 1313,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      },
+                      {
+                        "h": 2048,
+                        "w": 1024,
+                        "x": 51,
+                        "y": 0
+                      },
+                      {
+                        "h": 2048,
+                        "w": 1152,
+                        "x": 0,
+                        "y": 0
+                      }
+                    ],
+                    "height": 2048,
+                    "width": 1152
+                  },
+                  "sizes": {
+                    "large": {
+                      "h": 2048,
+                      "resize": "fit",
+                      "w": 1152
+                    },
+                    "medium": {
+                      "h": 1200,
+                      "resize": "fit",
+                      "w": 675
+                    },
+                    "small": {
+                      "h": 680,
+                      "resize": "fit",
+                      "w": 383
+                    },
+                    "thumb": {
+                      "h": 150,
+                      "resize": "crop",
+                      "w": 150
+                    }
+                  },
+                  "type": "photo",
+                  "url": "https://t.co/AGDGlM1pPm"
+                }
+              ]
+            },
+            "favorite_count": 13,
+            "favorited": false,
+            "full_text": "Just got some @apify swag 👅 https://t.co/AGDGlM1pPm",
+            "id_str": "2088359637460394114",
+            "is_quote_status": false,
+            "lang": "en",
+            "possibly_sensitive": false,
+            "possibly_sensitive_editable": true,
+            "quote_count": 0,
+            "reply_count": 0,
+            "retweet_count": 1,
+            "retweeted": false,
+            "user_id_str": "3358091321"
+          },
+          "rest_id": "2088359637460394114",
+          "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+          "unmention_data": {},
+          "views": {
+            "count": "713",
+            "state": "EnabledWithCount"
+          }
+        }
+      },
+      "user_id_str": "3510729917"
+    },
+    "rest_id": "2088525549626867786",
+    "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+    "unmention_data": {},
+    "views": {
+      "count": "90",
+      "state": "EnabledWithCount"
+    }
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "_capturedFrom": "@apify",
+  "_capturedAt": "2026-08-17T13:17:03.292Z",
+  "tweet": {
+    "__typename": "Tweet",
+    "card": {
+      "rest_id": "https://t.co/ViJLuO6enB"
+    },
+    "cashtag_attachments": [],
+    "core": {
+      "user_results": {
+        "result": {
+          "__typename": "User",
+          "action_counts": {
+            "favorites_count": 4107
+          },
+          "affiliates_highlighted_label": {},
+          "avatar": {
+            "image_url": "https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png"
+          },
+          "banner": {
+            "image_url": "https://pbs.twimg.com/profile_banners/3510729917/1784551662"
+          },
+          "can_pay": false,
+          "core": {
+            "created_at": "Tue Sep 01 08:38:01 +0000 2015",
+            "name": "Apify",
+            "screen_name": "apify"
+          },
+          "dm_permissions": {
+            "can_dm": false
+          },
+          "follow_request_sent": false,
+          "has_graduated_access": true,
+          "id": "VXNlcjozNTEwNzI5OTE3",
+          "is_blue_verified": false,
+          "location": {
+            "location": "The Interwebz"
+          },
+          "media_permissions": {
+            "can_media_tag": false
+          },
+          "notifications_settings": {
+            "notifications_enabled": false
+          },
+          "parody_commentary_fan_label": "None",
+          "pinned_items": {
+            "tweet_ids_str": [
+              "2087572956683567110"
+            ]
+          },
+          "possibly_sensitive": false,
+          "privacy": {
+            "protected": false
+          },
+          "professional": {
+            "category": [],
+            "professional_type": "Business",
+            "rest_id": "1583013496266137600"
+          },
+          "profile_bio": {
+            "description": "Thousands of Actors to automate your business, get real-time web data, and integrate your apps and agents.  ➡️  https://t.co/rySkh8qnak • https://t.co/PiUfLvrTQ2 • https://t.co/x4G1meKY5i",
+            "entities": {
+              "description": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "http://apify.com",
+                    "indices": [
+                      112,
+                      135
+                    ],
+                    "url": "https://t.co/rySkh8qnak"
+                  },
+                  {
+                    "display_url": "mcp.apify.com",
+                    "expanded_url": "http://mcp.apify.com",
+                    "indices": [
+                      138,
+                      161
+                    ],
+                    "url": "https://t.co/PiUfLvrTQ2"
+                  },
+                  {
+                    "display_url": "github.com/apify",
+                    "expanded_url": "http://github.com/apify",
+                    "indices": [
+                      164,
+                      187
+                    ],
+                    "url": "https://t.co/x4G1meKY5i"
+                  }
+                ]
+              },
+              "url": {
+                "urls": [
+                  {
+                    "display_url": "apify.com",
+                    "expanded_url": "https://apify.com",
+                    "indices": [
+                      0,
+                      23
+                    ],
+                    "url": "https://t.co/VWktFqWRhX"
+                  }
+                ]
+              }
+            }
+          },
+          "profile_description_language": "en",
+          "profile_image_shape": "Square",
+          "profile_metadata": {
+            "profile_interstitial_type": ""
+          },
+          "profile_translation": {
+            "translator_type": "none"
+          },
+          "relationship_counts": {
+            "followers": 11840,
+            "following": 296
+          },
+          "relationship_perspectives": {
+            "blocked_by": false,
+            "blocking": false,
+            "followed_by": false,
+            "following": false,
+            "live_following": false,
+            "muting": false
+          },
+          "rest_id": "3510729917",
+          "super_follow_eligible": false,
+          "super_followed_by": false,
+          "super_following": false,
+          "tipjar_settings": {
+            "bandcamp_handle": "",
+            "bitcoin_handle": "",
+            "cash_app_handle": "",
+            "ethereum_handle": "",
+            "gofundme_handle": "",
+            "is_enabled": false,
+            "patreon_handle": "",
+            "pay_pal_handle": "",
+            "venmo_handle": ""
+          },
+          "tweet_counts": {
+            "media_tweets": 1154,
+            "tweets": 4632
+          },
+          "verification": {
+            "verified": false,
+            "verified_type": "Business"
+          },
+          "verified_phone_status": false,
+          "website": {
+            "url": "https://t.co/VWktFqWRhX"
+          }
+        }
+      }
+    },
+    "disallowed_reply_controls": [],
+    "edit_control": {
+      "edit_tweet_ids": [
+        "2089333130104631493"
+      ],
+      "editable_until_msecs": "1786974410000",
+      "edits_remaining": "5",
+      "is_edit_eligible": false
+    },
+    "grok_analysis_button": true,
+    "grok_annotations": {},
+    "grok_translated_post_with_availability": {
+      "is_available": false
+    },
+    "is_translatable": false,
+    "legacy": {
+      "bookmark_count": 0,
+      "bookmarked": false,
+      "conversation_id_str": "2089333108008992826",
+      "created_at": "Mon Aug 17 12:46:50 +0000 2026",
+      "display_text_range": [
+        10,
+        49
+      ],
+      "entities": {
+        "urls": [
+          {
+            "display_url": "apify.it/4x7OMNo",
+            "expanded_url": "https://apify.it/4x7OMNo",
+            "indices": [
+              26,
+              49
+            ],
+            "url": "https://t.co/ViJLuO6enB"
+          }
+        ],
+        "user_mentions": [
+          {
+            "id_str": "752028078",
+            "indices": [
+              0,
+              9
+            ],
+            "name": "G2",
+            "screen_name": "G2dotcom"
+          }
+        ]
+      },
+      "favorite_count": 0,
+      "favorited": false,
+      "full_text": "@G2dotcom See why on G2 👀 https://t.co/ViJLuO6enB",
+      "id_str": "2089333130104631493",
+      "in_reply_to_screen_name": "apify",
+      "in_reply_to_status_id_str": "2089333108008992826",
+      "in_reply_to_user_id_str": "3510729917",
+      "is_quote_status": false,
+      "lang": "en",
+      "possibly_sensitive": false,
+      "possibly_sensitive_editable": true,
+      "quote_count": 0,
+      "reply_count": 0,
+      "retweet_count": 0,
+      "retweeted": false,
+      "user_id_str": "3510729917"
+    },
+    "rest_id": "2089333130104631493",
+    "source": "<a href=\"https://app.agorapulse.com\" rel=\"nofollow\">Agorapulse app</a>",
+    "unmention_data": {},
+    "views": {
+      "count": "46",
+      "state": "EnabledWithCount"
+    }
+  }
+}
