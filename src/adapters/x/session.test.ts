@@ -5,6 +5,8 @@ import {
   APIFY_SESSION_ID_PATTERN,
   REQUESTS_BEFORE_GROWING,
   RETIRE_AT_REMAINING,
+  SLOW_REQUEST_MS,
+  SLOW_STREAK_BEFORE_RETIRE,
   SessionPool,
   sessionId,
 } from './session.js';
@@ -180,5 +182,93 @@ describe('session triples (SPEC.md §5.1)', () => {
     const pool = new SessionPool({ http, newProxyUrl: async () => undefined, maxSessions: 1 });
 
     await expect(pool.acquire()).rejects.toThrow(/guest\/activate failed: HTTP 503/);
+  });
+});
+
+/**
+ * Slow exit nodes (SPEC.md §5.2).
+ *
+ * Found by benchmarking on the platform: eight runs of the same paginated account did
+ * identical work — 12 pages, 13 requests, zero 429s — and ranged 10.1 s to 85.1 s. The
+ * only variable was the residential exit node, and a cursor chain is sequential, so one
+ * slow node taxes every page. The pool now rotates on latency, not just on rate limit.
+ */
+describe('retiring a slow exit node', () => {
+  const response: HttpResponse = { statusCode: 200, body: '{}', headers: {} };
+
+  function pool(maxSessions = 5) {
+    const retired: string[] = [];
+    const p = new SessionPool({
+      http: async () => ({
+        statusCode: 200,
+        body: JSON.stringify({ guest_token: 't' }),
+        headers: {},
+      }),
+      newProxyUrl: async () => undefined,
+      maxSessions,
+      onEvent: (e) => {
+        if (e.type === 'retired') retired.push(e.reason);
+      },
+    });
+    return { p, retired };
+  }
+
+  it('tolerates one slow response — a big page is not a bad node', async () => {
+    const { p } = pool();
+    const s = await p.acquire();
+
+    p.observe(s, response, SLOW_REQUEST_MS + 1);
+
+    expect(s.retired).toBe(false);
+    expect(s.slowStreak).toBe(1);
+  });
+
+  it('retires after a streak of slow responses', async () => {
+    const { p, retired } = pool();
+    const s = await p.acquire();
+
+    for (let i = 0; i < SLOW_STREAK_BEFORE_RETIRE; i++) {
+      p.observe(s, response, SLOW_REQUEST_MS + 1);
+    }
+
+    expect(s.retired).toBe(true);
+    expect(retired[0]).toMatch(/slow exit node/);
+  });
+
+  it('a fast response resets the streak, so intermittent slowness is not a retirement', async () => {
+    const { p } = pool();
+    const s = await p.acquire();
+
+    p.observe(s, response, SLOW_REQUEST_MS + 1);
+    p.observe(s, response, 100);
+    p.observe(s, response, SLOW_REQUEST_MS + 1);
+
+    expect(s.retired).toBe(false);
+    expect(s.slowStreak).toBe(1);
+  });
+
+  it('gives up rotating once a whole pool of nodes has been slow', async () => {
+    // If every fresh exit node is slow, the problem is the network, not the node —
+    // churning tokens past that point buys nothing.
+    const maxSessions = 2;
+    const { p } = pool(maxSessions);
+
+    for (let i = 0; i < maxSessions + 3; i++) {
+      const s = await p.acquire();
+      p.observe(s, response, SLOW_REQUEST_MS + 1);
+      p.observe(s, response, SLOW_REQUEST_MS + 1);
+    }
+
+    expect(p.totalCreated).toBeLessThanOrEqual(maxSessions + 1);
+  });
+
+  it('ignores latency when none is reported', async () => {
+    const { p } = pool();
+    const s = await p.acquire();
+
+    p.observe(s, response);
+    p.observe(s, response);
+
+    expect(s.retired).toBe(false);
   });
 });

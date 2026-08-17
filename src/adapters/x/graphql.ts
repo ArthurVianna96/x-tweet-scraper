@@ -36,6 +36,8 @@ export interface XClientOptions {
   readonly maxAttempts?: number;
   readonly sleep?: (ms: number) => Promise<void>;
   readonly random?: () => number;
+  /** Injected so the slow-exit-node policy is testable without a slow test. */
+  readonly now?: () => number;
   readonly onEvent?: (event: XClientEvent) => void;
 }
 
@@ -104,6 +106,9 @@ export class XClient {
       this.stats.requests++;
       this.opts.onEvent?.({ type: 'request', operation: operationName, attempt });
 
+      const now = this.opts.now ?? Date.now;
+      const sentAt = now();
+
       let response;
       try {
         response = await this.opts.http({
@@ -122,7 +127,9 @@ export class XClient {
         continue;
       }
 
-      this.opts.pool.observe(session, response);
+      // Latency is fed back so the pool can retire a slow exit node, not just a
+      // rate-limited one — the difference between one slow page and one slow run.
+      this.opts.pool.observe(session, response, now() - sentAt);
       this.stats.bytes += response.body.length;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {

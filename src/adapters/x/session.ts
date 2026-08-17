@@ -20,6 +20,8 @@ export interface XSession {
   readonly headers: Readonly<Record<string, string>>;
   readonly proxyUrl: string | undefined;
   requestsMade: number;
+  /** Consecutive responses slower than `SLOW_REQUEST_MS`. Reset by any fast response. */
+  slowStreak: number;
   /** From `x-rate-limit-remaining`; `null` until the first response is seen. */
   remaining: number | null;
   /** From `x-rate-limit-reset`, epoch seconds. */
@@ -34,6 +36,21 @@ export interface XSession {
  * (SPEC.md §5.2).
  */
 export const RETIRE_AT_REMAINING = 5;
+
+/**
+ * Retire a triple that is *slow*, not just rate-limited.
+ *
+ * A healthy page is ~0.7–0.9 s. Measured on the platform benchmark: eight runs of the
+ * same paginated account did identical work — 12 pages, 13 requests, zero 429s — and
+ * ranged from 10.1 s to 85.1 s. The only variable was the residential exit node, and
+ * because a cursor chain is sequential, one slow node taxes all twelve pages.
+ *
+ * Rotating on latency turns an unlucky node into one slow page instead of one slow run.
+ * Two consecutive slow responses rather than one, because a single slow response is
+ * usually a large page (a snapshot-mode timeline is ~600 KB) rather than a bad node.
+ */
+export const SLOW_REQUEST_MS = 2_500;
+export const SLOW_STREAK_BEFORE_RETIRE = 2;
 
 /** How many requests a triple serves before the pool adds another. See `acquire`. */
 export const REQUESTS_BEFORE_GROWING = 10;
@@ -105,6 +122,7 @@ export type SessionEvent =
 export class SessionPool {
   private readonly sessions: XSession[] = [];
   private created = 0;
+  private slowRetirements = 0;
   private cursor = 0;
   private creating: Promise<XSession> | null = null;
 
@@ -168,13 +186,33 @@ export class SessionPool {
    * Feed every response back so the pool can budget proactively rather than discover
    * exhaustion by being refused.
    */
-  observe(session: XSession, response: HttpResponse): void {
+  observe(session: XSession, response: HttpResponse, elapsedMs?: number): void {
     session.requestsMade++;
 
     const remaining = numericHeader(response, 'x-rate-limit-remaining');
     const reset = numericHeader(response, 'x-rate-limit-reset');
     if (remaining !== null) session.remaining = remaining;
     if (reset !== null) session.resetAt = reset;
+
+    if (elapsedMs !== undefined) {
+      session.slowStreak = elapsedMs >= SLOW_REQUEST_MS ? session.slowStreak + 1 : 0;
+
+      /**
+       * Bounded on purpose. If a whole pool's worth of fresh exit nodes were all slow,
+       * the problem is not the node — it is X or the network — and churning tokens after
+       * that buys nothing.
+       */
+      if (
+        session.slowStreak >= SLOW_STREAK_BEFORE_RETIRE &&
+        this.slowRetirements < this.opts.maxSessions
+      ) {
+        this.slowRetirements++;
+        this.retire(
+          session,
+          `slow exit node (${session.slowStreak} responses ≥ ${SLOW_REQUEST_MS}ms)`,
+        );
+      }
+    }
 
     if (session.remaining !== null && session.remaining <= RETIRE_AT_REMAINING) {
       this.retire(session, `rate-limit budget spent (${session.remaining} left)`);
@@ -203,6 +241,7 @@ export class SessionPool {
       headers,
       proxyUrl,
       requestsMade: 0,
+      slowStreak: 0,
       remaining: null,
       resetAt: null,
       retired: false,
