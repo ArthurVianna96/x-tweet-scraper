@@ -76,9 +76,8 @@
     "onlyVerified": {
       "title": "Only verified authors",
       "type": "boolean",
-      "description": "X conflates paid Blue with legacy verification, so this matches either.",
-      "editor": "checkbox",
-      "default": false
+      "description": "X conflates paid Blue with legacy verification, so this matches either. Leave unset for no constraint — it never excludes verified authors.",
+      "editor": "checkbox"
     },
     "mediaType": {
       "title": "Media type",
