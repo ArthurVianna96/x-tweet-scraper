@@ -72,9 +72,9 @@ export function extractTimelinePage(payload: unknown): TimelinePage {
       continue;
     }
 
-    // `TimelinePinEntry` falls through here deliberately: a pinned tweet is an
-    // arbitrarily old tweet served at the top of the timeline, so emitting it would
-    // silently corrupt `sortBy: latest` ordering.
+    // Skips `TimelinePinEntry` along with everything else, and deliberately: a pinned
+    // tweet is an arbitrarily old tweet served at the top of the timeline, so emitting
+    // it would silently corrupt `sortBy: latest` ordering.
     if (type !== 'TimelineAddEntries') continue;
 
     for (const entry of asArray(path(instruction, 'entries'))) {
