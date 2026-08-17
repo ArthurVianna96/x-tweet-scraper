@@ -654,12 +654,48 @@ user id: the key is HMAC'd precisely so a public store reveals nothing about who
 
 ### Running locally
 
+Input is read from a file, not from arguments. Create it once:
+
 ```bash
 npm install
 cp .env.example .env          # optional — without it the gate caps at 10
-echo '{"fromUsers":["apify","naval"],"maxResults":100}' \
-  > storage/key_value_stores/default/INPUT.json
-npm run start:dev
+mkdir -p storage/key_value_stores/default
+cat > storage/key_value_stores/default/INPUT.json <<'JSON'
+{ "fromUsers": ["apify", "naval"], "maxResults": 25, "sortBy": "latest",
+  "proxyConfiguration": { "useApifyProxy": false } }
+JSON
+```
+
+Then either runner works:
+
+```bash
+npm run start:dev     # tsx, reads .env — fastest loop, no Apify login
+npx apify-cli run     # the platform's own runner; reads `apify secrets` instead of .env
+```
+
+Results land as one file per item in `storage/datasets/default/`, and the run summary in
+`storage/key_value_stores/default/OUTPUT.json`.
+
+**Both runners purge the default dataset and key-value store on start** (keeping `INPUT`),
+so each local run is clean and there is no stale-state trap. The side effect is that the
+resume protection in §4.5 is invisible locally — it needs storage to survive. To watch it
+work, disable the purge and run twice:
+
+```bash
+APIFY_PURGE_ON_START=0 npm run start:dev   # first run fills the dataset
+APIFY_PURGE_ON_START=0 npm run start:dev   # → "resuming", fetched 0, pushed 0
+```
+
+The second run reports `fetched: 0` — it did not pull a single page, because the cap was
+already spent. And to see the resurrect-and-reset bypass fail, forge the counter the way a
+runner who owns this storage could, then run again:
+
+```bash
+python3 - <<'PY'
+import json; p='storage/key_value_stores/default/CRAWL_STATE.json'
+d=json.load(open(p)); d['pushed']=0; json.dump(d,open(p,'w'))
+PY
+APIFY_PURGE_ON_START=0 npm run start:dev   # still "alreadyPushed: 25" — floored on itemCount
 ```
 
 A residential proxy is recommended (`proxyConfiguration: {"useApifyProxy": true,

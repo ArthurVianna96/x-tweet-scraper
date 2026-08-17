@@ -144,7 +144,8 @@
       "editor": "number",
       "minimum": 1,
       "default": 50,
-      "sectionCaption": "Advanced"
+      "sectionCaption": "Advanced",
+      "description": "Advanced. Upper bound on how many accounts a single run will crawl, including accounts found by seed expansion."
     },
     "maxPagesPerAccount": {
       "title": "Maximum pages per account",
