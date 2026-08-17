@@ -514,22 +514,49 @@ Both are Grade A. The paginated row is the honest worst case: twelve sequential 
 and discard 116 to reach 100. A genuinely high-volume author is denser, and often answers
 in snapshot mode entirely.
 
-**Measured on the Apify platform** — paid user, `sortBy: latest`, `maxResults: 100`, Apify
-residential proxy:
+### On the Apify platform, with a residential proxy
 
-|                                         |                                          |
-| --------------------------------------- | ---------------------------------------- |
-| **Time to 100 schema-conforming items** | **10.8 s** — Grade A (< 30 s)            |
-| Requests / pages                        | 11 requests, 6 pages                     |
-| Guest tokens                            | 1                                        |
-| Selectivity                             | 77%                                      |
-| Transferred                             | 4.1 MB                                   |
-| `429` / `403` / errors of any kind      | **0**                                    |
-| Duplicates                              | 0 — 100 unique ids, descending Snowflake |
-| Cost per 1k results                     | 0.041 GB proxy + 0.12 CU ≈ **$0.56**     |
+This is the number the brief re-runs to confirm, so it is published as a **distribution
+rather than a best sample**. Paid user, `sortBy: latest`, `maxResults: 100`, Apify
+residential proxy, build 0.1.7. Our timer is stricter than the brief's — it **includes**
+the ~4 s cold start the brief excludes.
 
-The run stayed clean, which the brief requires: no bans, nothing dropped to error. One
-guest token was enough because 11 requests sits far inside the ~50-per-15-minutes budget.
+| Author                      | n   | Wall clock (s)                                        | Grade A   |
+| --------------------------- | --- | ----------------------------------------------------- | --------- |
+| `@elonmusk` (snapshot mode) | 5   | 3.7 · 3.8 · 5.2 · 10.3 · 12.0                         | **5 / 5** |
+| `@apify` (paginated mode)   | 8   | 10.1 · 16.2 · 22.4 · 22.7 · 33.2 · 49.2 · 65.0 · 85.1 | 4 / 8     |
+
+Every one of those runs was clean — **zero `429`s, zero errors, zero duplicates**, and on
+the paginated account every single run did _identical_ work: 12 pages, 13 requests, 46%
+selectivity. The work is constant; only the clock moves.
+
+**So: reliably Grade A on a snapshot-mode author, and a coin flip on a paginated one.**
+The variance is Apify residential-proxy latency multiplied across 12 **sequential** page
+fetches, which is the ceiling a single cursor chain imposes. A good run paged at ~1.1 s,
+identical to the same account with no proxy at all; a bad run paged at ~7 s.
+
+### An optimisation we tried and rejected
+
+The obvious read is "one unlucky exit node, so rotate away from it". We implemented that —
+retire a triple after consecutive slow responses so the next page draws a fresh node — and
+measured it over another 8 runs. It did not work:
+
+|                             | median | worst      | Grade A |
+| --------------------------- | ------ | ---------- | ------- |
+| Before                      | 33.2 s | 85.1 s     | 4 / 8   |
+| With latency-based rotation | 31.1 s | **94.2 s** | 4 / 8   |
+
+No movement in the median, and a worse tail. Rotation fired correctly (2 → 4 guest tokens
+on the slow runs), which is what disproves the hypothesis: minting a replacement costs a
+round trip through the _same_ residential pool, so when the pool is slow, rotating buys a
+new node that is slow too and charges for the privilege. The bottleneck is the pool at that
+moment, not an individual node, and it is not ours to fix from inside the Actor. The change
+was reverted rather than kept as unproven complexity.
+
+What genuinely moves this number: fewer sequential pages. `@apify` is a pessimal benchmark
+target because it retweets heavily — with `includeRetweets: false` we fetch 216 tweets to
+push 100, so 12 pages instead of ~6. An author who posts mostly originals halves the chain,
+and a snapshot-mode author removes it entirely.
 
 The two `searchTerms` paths cost very different amounts, and the gap is the architecture
 stating its own limitation. Measured 2026-08-17 on macOS with **no proxy**:
@@ -874,6 +901,11 @@ production.
   surfaces have no such ceiling.
 - **`sortBy: top` is an approximation** — engagement ranking within the collected set. X's
   own relevance ranking is not reproducible from the guest surface.
+- **On a paginated author the benchmark is proxy-bound, and Grade A is not guaranteed.**
+  Measured 4 of 8 runs under 30 s, median 33.2 s, on constant work (§5). A single cursor
+  chain is sequential by construction, so residential-proxy latency multiplies across
+  every page. We tried rotating away from slow nodes and measured no improvement; the
+  honest statement is that this variance is the proxy pool, not the code.
 - **Fixtures cannot detect X changing its response shape.** The suite is offline and
   deterministic by choice, and the price of that choice is that these tests stay green
   while production breaks. In a production system you close this with a scheduled,
