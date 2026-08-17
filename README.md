@@ -491,114 +491,45 @@ that is the right trade.**
 
 ## 5. Speed and cost, measured
 
-The brief benchmarks time to 100 valid results from **a single high-volume author**,
-`sortBy: latest`, residential proxy, `maxResults: 100`, as a paid user. The timer starts at
-the first outbound request and stops at the 100th schema-conforming item; cold start is
-excluded, and the run must stay clean — any `429` invalidates the measurement.
+The benchmark is time to 100 items from a single high-volume author, residential proxy,
+paid user. One property sets the ceiling: **a single author is a single cursor chain, and
+a cursor chain cannot be parallelised** — page 2 needs page 1's cursor. So this measures
+sequential paging rather than concurrency.
 
-That is the author surface, which is the path this Actor is fastest on. One property of it
-is worth stating up front, because it sets the ceiling: **a single author is a single
-cursor chain, and a cursor chain cannot be parallelised** — page 2 needs page 1's cursor.
-So the one-author benchmark measures our sequential paging, not our concurrency.
+Measured on the Apify platform, and published as a distribution rather than a best sample,
+because the brief re-runs it. Our timer is stricter than the brief's: it includes the ~4 s
+cold start the brief excludes.
 
-Guests see two response modes, and the benchmark lands differently on each. Measured
-2026-08-17, macOS, **no proxy**, via `npx tsx src/tools/benchmark.ts native <handle>`:
+| Author                      | n   | Wall clock                 | Grade A   |
+| --------------------------- | --- | -------------------------- | --------- |
+| `@elonmusk` (snapshot mode) | 5   | 3.7–12.0 s                 | **5 / 5** |
+| `@apify` (paginated mode)   | 8   | 10.1–85.1 s, median 33.2 s | 4 / 8     |
 
-| Single author               | Items | Wall clock | Requests / pages | Selectivity |
-| --------------------------- | ----- | ---------- | ---------------- | ----------- |
-| `@elonmusk` (snapshot mode) | 99    | **0.31 s** | 2 / 1            | 100%        |
-| `@apify` (paginated mode)   | 100   | **12.8 s** | 14 / 12          | 46%         |
+Every run was clean — zero `429`s, zero errors, zero duplicates — and on the paginated
+account every run did identical work: 12 pages, 13 requests, 46% selectivity. The work is
+constant; only the clock moves.
 
-Both are Grade A. The paginated row is the honest worst case: twelve sequential pages at
-~1.07 s each, on an account that is not especially high-volume — it had to fetch 216 tweets
-and discard 116 to reach 100. A genuinely high-volume author is denser, and often answers
-in snapshot mode entirely.
+**Reliably Grade A on a snapshot-mode author, and a coin flip on a paginated one.** The
+variance is residential-proxy latency multiplied across 12 sequential fetches: a good run
+paged at ~1.1 s, matching the same account with no proxy at all, and a bad one at ~7 s.
 
-### On the Apify platform, with a residential proxy
+Page count is the part we control, and it follows from selectivity. Counting retweets on
+the same account raises selectivity to 69%, shortens the chain to 8 pages and halves the
+median to 14.8 s (7/8 Grade A) — but the tail survives, so this attributes the cost rather
+than fixing it. The brief leaves `includeRetweets` at `false`, so **4 / 8 is the number
+that answers the brief.**
 
-This is the number the brief re-runs to confirm, so it is published as a **distribution
-rather than a best sample**. Paid user, `sortBy: latest`, `maxResults: 100`, Apify
-residential proxy, build 0.1.7. Our timer is stricter than the brief's — it **includes**
-the ~4 s cold start the brief excludes.
+We also tried retiring slow exit nodes to escape the tail. It measured no better and was
+reverted; a replacement token is minted through the same slow pool.
 
-| Author                      | n   | Wall clock (s)                                        | Grade A   |
-| --------------------------- | --- | ----------------------------------------------------- | --------- |
-| `@elonmusk` (snapshot mode) | 5   | 3.7 · 3.8 · 5.2 · 10.3 · 12.0                         | **5 / 5** |
-| `@apify` (paginated mode)   | 8   | 10.1 · 16.2 · 22.4 · 22.7 · 33.2 · 49.2 · 65.0 · 85.1 | 4 / 8     |
+There is no guest-reachable way to page more efficiently: `UserOriginalsTimeline`, which
+would let us ask X for originals only, is one of the `404`s in §1. On a retweet-heavy
+account we pay for what we discard.
 
-Every one of those runs was clean — **zero `429`s, zero errors, zero duplicates**, and on
-the paginated account every single run did _identical_ work: 12 pages, 13 requests, 46%
-selectivity. The work is constant; only the clock moves.
+### Cost
 
-**So: reliably Grade A on a snapshot-mode author, and a coin flip on a paginated one.**
-The variance is Apify residential-proxy latency multiplied across 12 **sequential** page
-fetches, which is the ceiling a single cursor chain imposes. A good run paged at ~1.1 s,
-identical to the same account with no proxy at all; a bad run paged at ~7 s.
-
-### An optimisation we tried and rejected
-
-The obvious read is "one unlucky exit node, so rotate away from it". We implemented that —
-retire a triple after consecutive slow responses so the next page draws a fresh node — and
-measured it over another 8 runs. It did not work:
-
-|                             | median | worst      | Grade A |
-| --------------------------- | ------ | ---------- | ------- |
-| Before                      | 33.2 s | 85.1 s     | 4 / 8   |
-| With latency-based rotation | 31.1 s | **94.2 s** | 4 / 8   |
-
-No movement in the median, and a worse tail. Rotation fired correctly (2 → 4 guest tokens
-on the slow runs), which is what disproves the hypothesis: minting a replacement costs a
-round trip through the _same_ residential pool, so when the pool is slow, rotating buys a
-new node that is slow too and charges for the privilege. The bottleneck is the pool at that
-moment, not an individual node, and it is not ours to fix from inside the Actor. The change
-was reverted rather than kept as unproven complexity.
-
-### What does move it: fewer sequential pages
-
-If proxy latency is the multiplier, the length of the chain is the thing being multiplied.
-That is testable. The same account, same conditions, changing only one filter:
-
-| `@apify`, 100 items      | Pages | Selectivity | Median     | Worst  | Grade A   |
-| ------------------------ | ----- | ----------- | ---------- | ------ | --------- |
-| `includeRetweets: false` | 12    | 46%         | 33.2 s     | 85.1 s | 4 / 8     |
-| `includeRetweets: true`  | 8     | 69%         | **14.8 s** | 69.5 s | **7 / 8** |
-
-Counting retweets raises selectivity from 46% to 69%, which drops the chain from 12 pages
-to 8 and the median from 33.2 s to 14.8 s. Guest tokens drop from 2 to 1, because the
-shorter run fits inside one triple's rate-limit budget. The long tail does not disappear —
-one run still hit 69.5 s on the same 8 pages — which is the point: **the proxy sets the
-variance, the page count sets the scale.**
-
-Two honest qualifications. The brief's benchmark leaves `includeRetweets` at its default of
-`false`, so **4 / 8 is the number that answers the brief** and 7 / 8 is a diagnostic that
-attributes the cost. And this sample also drew better proxy luck than the baseline sample
-did, so the improvement is not purely the page count.
-
-It also names a limitation rather than a fix. On a retweet-heavy account the default
-filters make us fetch 216 tweets to keep 100, and there is no guest-reachable way to avoid
-it: `UserOriginalsTimeline` — the operation that would let us ask X for originals only — is
-one of the `404`s in §1. We pay for what we discard because the filtered surface is closed.
-
-The two `searchTerms` paths cost very different amounts, and the gap is the architecture
-stating its own limitation. Measured 2026-08-17 on macOS with **no proxy**:
-
-|                       | **Author path**              | **Full seeded path**                       |
-| --------------------- | ---------------------------- | ------------------------------------------ |
-| Query                 | 10 handles, `sortBy: latest` | keyword `"web scraping"`, seeded discovery |
-| Items                 | **100**                      | 58 _(seed set exhausted before 100)_       |
-| Wall clock            | **2.90 s**                   | 53.6 s                                     |
-| Per item              | **29 ms**                    | 925 ms                                     |
-| Requests / pages      | 12 / 6                       | 192 / 160                                  |
-| Tweets fetched        | 119                          | 3,571                                      |
-| Selectivity           | 84%                          | 1.6%                                       |
-| Guest tokens          | 1                            | 5                                          |
-| Transferred           | 3.2 MB                       | 34.3 MB                                    |
-| `429` count           | **0**                        | **0**                                      |
-| Cold start (excluded) | 1.4 s                        | 1.3 s                                      |
-
-Cost per 1,000 results at Apify list prices (residential proxy $12.50/GB, compute unit
-$0.40). The constants live in `src/actor/summary.ts` so you can correct them for your own
-plan:
+Per 1,000 results at Apify list prices (residential proxy $12.50/GB, compute unit $0.40).
+The constants live in `src/actor/summary.ts` so you can correct them for your plan.
 
 |           | Author path          | Seeded              |
 | --------- | -------------------- | ------------------- |
@@ -606,28 +537,17 @@ plan:
 | Compute   | 0.008 CU → $0.003    | 0.26 CU → $0.10     |
 | **Total** | **≈ $0.41 / 1k**     | **≈ $7.49 / 1k**    |
 
-**One caveat on those figures: the extrapolation is linear and part of the cost is not.**
-Cold start — the ~1.8 MB queryId bundle plus the first guest token — is paid once
-regardless of run size, so a small run spreads it thin and overstates per-1k cost. The same
-author path reports ≈$2.19/1k on a 10-item free run and ≈$0.41/1k on a 100-item run. The
-number only means something for runs large enough to amortise cold start, which is exactly
-why `bytesTransferred` is published beside it.
+The extrapolation is linear and part of the cost is not. Cold start is paid once whatever
+the run size, so a small run overstates the figure — the same path reports ≈$2.19/1k on a
+10-item run and ≈$0.41/1k on a 100-item one. `bytesTransferred` is published beside it.
 
-### Read the gap, not the headline
+The 18× gap between the two paths is the cost of the stretch surface: extraction from
+known handles is cheap, and keyword matching is not, because recall is seed-bounded and
+selectivity is low. An early run against weaker seeds measured 0.09% selectivity and an
+implied $128/1k, which is why the Actor has a request budget (`maxRequests`, default 500).
+When it stops a run the summary says so.
 
-The 32× difference between those two paths is the cost of the stretch surface. Extraction
-from known handles — the required path — is fast and cheap. Keyword _matching_ is expensive,
-because recall is seed-bounded and selectivity is low. That gap is the honest reason search
-is scoped as a bonus here rather than sold as an equal.
-
-An earlier run of the same keyword against weaker seeds measured 0.09% selectivity, 518
-requests, 91 MB, and an implied $128/1k. That measurement is why the Actor has a **request
-budget** (`maxRequests`, default 500). Without one, the cost of a run is bounded only by
-how many accounts exist. When the budget stops a run, the summary says so
-(`budgetExhausted: true`).
-
-Every run writes the same diagnostics to `OUTPUT`, so any claim on this page can be
-re-derived instead of trusted:
+Every run writes its own diagnostics to `OUTPUT`, so any claim here can be re-derived:
 
 ```jsonc
 {
@@ -637,6 +557,7 @@ re-derived instead of trusted:
   "limited": false,
   "reason": null,
   "cap": null,
+  "hydratedById": { "requested": 0, "hydrated": 0, "missing": 0 },
   "discoveryStrategy": "direct",
   "seedsResolved": 10,
   "accountsCrawled": 6,
