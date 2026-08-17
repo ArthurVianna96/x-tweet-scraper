@@ -38,7 +38,11 @@ try {
   const entitlement = await resolveEntitlement(
     entitlementConfig === null
       ? () => Promise.reject(new Error('entitlement store is not configured for this deployment'))
-      : createEntitlementLookup({ client: Actor.newClient(), ...entitlementConfig }),
+      : createEntitlementLookup({
+          client: Actor.newClient(),
+          actorRunId: Actor.getEnv().actorRunId ?? undefined,
+          ...entitlementConfig,
+        }),
   );
   const cap = effectiveCap(entitlement, input.maxResults);
   const requestBudget = requestBudgetFor(entitlement, input.maxRequests);

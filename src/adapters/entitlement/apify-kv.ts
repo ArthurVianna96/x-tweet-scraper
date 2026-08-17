@@ -36,6 +36,8 @@ export interface EntitlementSourceOptions {
    * would publish the authority itself (SPEC.md §4.2).
    */
   readonly hmacKey: string;
+  /** `Actor.getEnv().actorRunId` — names the run whose owner the API will tell us. */
+  readonly actorRunId?: string | undefined;
   readonly timeoutMs?: number;
 }
 
@@ -43,11 +45,7 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
   return async () => {
     const timeoutMs = opts.timeoutMs ?? 10_000;
 
-    const user = await withTimeout(opts.client.user('me').get(), timeoutMs, 'identity lookup');
-    const runnerUserId = user?.id;
-    if (typeof runnerUserId !== 'string' || runnerUserId.length === 0) {
-      throw new Error('could not resolve the runner identity from APIFY_TOKEN');
-    }
+    const runnerUserId = await resolveRunnerUserId(opts, timeoutMs);
 
     const key = entitlementKeyFor(runnerUserId, opts.hmacKey);
 
@@ -61,6 +59,49 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
     // it resolves to null rather than throwing. Only a *failed* lookup throws.
     return record?.value ?? null;
   };
+}
+
+/**
+ * Who is running this Actor — **asked of the platform, never read from a claim**.
+ *
+ * Two routes, because Apify runs Actors under scoped, limited-permission tokens: that
+ * token is refused by `/users/me` with "Insufficient permissions", which took the primary
+ * route out on the first deployed run while working perfectly in every local test.
+ *
+ * The fallback keeps the §4.1 principle intact. `APIFY_ACTOR_RUN_ID` is an environment
+ * variable and therefore an untrusted *claim* — but it is only used to name a resource,
+ * and the answer comes from the API, which returns the run's real owner. Pointing it at
+ * somebody else's run does not impersonate them: a run-scoped token may read its own run
+ * and nothing else, so a forged id is refused and the verdict fails closed to free.
+ *
+ * What we still refuse to do is read `APIFY_USER_ID` directly. That is a claim with no
+ * authority behind it at all, and brief §6 names environment variables as untrusted.
+ */
+async function resolveRunnerUserId(
+  opts: EntitlementSourceOptions,
+  timeoutMs: number,
+): Promise<string> {
+  try {
+    const user = await withTimeout(opts.client.user('me').get(), timeoutMs, 'identity lookup');
+    if (typeof user?.id === 'string' && user.id.length > 0) return user.id;
+  } catch (err) {
+    if (opts.actorRunId === undefined) throw err;
+  }
+
+  if (opts.actorRunId === undefined) {
+    throw new Error('could not resolve the runner identity from APIFY_TOKEN');
+  }
+
+  const run = await withTimeout(
+    opts.client.run(opts.actorRunId).get(),
+    timeoutMs,
+    'run owner lookup',
+  );
+  const ownerId = run?.userId;
+  if (typeof ownerId !== 'string' || ownerId.length === 0) {
+    throw new Error(`run ${opts.actorRunId} did not report an owner`);
+  }
+  return ownerId;
 }
 
 /**

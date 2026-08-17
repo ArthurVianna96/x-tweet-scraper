@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, HttpResponse } from '../http/client.js';
-import { REQUESTS_BEFORE_GROWING, RETIRE_AT_REMAINING, SessionPool } from './session.js';
+import {
+  APIFY_SESSION_ID_PATTERN,
+  REQUESTS_BEFORE_GROWING,
+  RETIRE_AT_REMAINING,
+  SessionPool,
+  sessionId,
+} from './session.js';
 
 /** A transport that mints a distinct guest token per call and records the proxy used. */
 function fakeHttp(): { http: HttpClient; proxies: (string | undefined)[]; calls: number } {
@@ -32,6 +38,36 @@ const response = (headers: Record<string, string>): HttpResponse => ({
   statusCode: 200,
   body: '{}',
   headers,
+});
+
+describe('session ids are valid for Apify Proxy', () => {
+  it('contains no character Apify Proxy rejects', () => {
+    // Apify Proxy validates against /^[\w._~]+$/ — no hyphens. A hyphenated id throws on
+    // the first newUrl() call and fails the entire run before a single request. It cannot
+    // be caught without a proxy, so the first deployed run was the first to see it.
+    expect(sessionId(1, 'abc123')).toMatch(APIFY_SESSION_ID_PATTERN);
+    expect(sessionId(42, 'z9q0x1')).toMatch(APIFY_SESSION_ID_PATTERN);
+    expect('x-1-kwdg8n').not.toMatch(APIFY_SESSION_ID_PATTERN); // the id that failed
+  });
+
+  it('mints ids the proxy accepts for every session the pool creates', async () => {
+    const { http } = fakeHttp();
+    const pool = new SessionPool({
+      http,
+      newProxyUrl: async (id) => {
+        if (!APIFY_SESSION_ID_PATTERN.test(id)) throw new Error(`bad sessionId: ${id}`);
+        return `http://proxy/${id}`;
+      },
+      maxSessions: 3,
+    });
+
+    for (let i = 0; i < REQUESTS_BEFORE_GROWING * 3; i++) {
+      const session = await pool.acquire();
+      pool.observe(session, response({ 'x-rate-limit-remaining': '40' }));
+    }
+
+    expect(pool.totalCreated).toBeGreaterThan(1);
+  });
 });
 
 describe('session triples (SPEC.md §5.1)', () => {

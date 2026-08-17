@@ -192,7 +192,7 @@ export class SessionPool {
 
   private async create(): Promise<XSession> {
     this.created++;
-    const id = `x-${this.created}-${randomSuffix()}`;
+    const id = sessionId(this.created, randomSuffix());
     const headers = generateBrowserHeaders();
     const proxyUrl = await this.opts.newProxyUrl(id);
     const guestToken = await mintGuestToken(this.opts.http, { headers, proxyUrl });
@@ -225,6 +225,20 @@ function numericHeader(response: HttpResponse, name: string): number | null {
   if (value === undefined) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Apify Proxy validates session IDs against `/^[\w._~]+$/` — **no hyphens**.
+ *
+ * A hyphenated id throws on the very first `newUrl()` call, which fails the entire run
+ * before a single request is made. It is invisible in local testing, because running
+ * without a proxy never calls `newUrl()` at all; the first time it fired was the first
+ * deployed run.
+ */
+export const APIFY_SESSION_ID_PATTERN = /^[\w._~]+$/;
+
+export function sessionId(index: number, suffix: string): string {
+  return `x_${index}_${suffix}`;
 }
 
 function randomSuffix(): string {
