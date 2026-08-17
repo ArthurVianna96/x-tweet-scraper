@@ -23,7 +23,7 @@ control.
 
 ```bash
 npm install
-npm test                     # 218 tests, offline, ~0.5s
+npm test                     # 221 tests, offline, ~0.5s
 npm run probe                # re-derive the endpoint capability matrix (~20s, no credentials)
 npm run start:dev            # run the Actor locally
 ```
@@ -219,7 +219,7 @@ No browser engine is installed and none is needed. The entire client is
 export type HttpClient = (req: HttpRequest) => Promise<HttpResponse>;
 ```
 
-Everything that leaves the process goes through that function. It is why 218 tests run
+Everything that leaves the process goes through that function. It is why 221 tests run
 offline in ~0.5 s with no module mocking anywhere: a test hands the constructor a canned
 responder and asserts. The port is deliberately status-code-transparent — a `404` or `429`
 is a _response_, not an exception — because the error taxonomy cannot classify what the
@@ -718,7 +718,7 @@ visible immediately because it fails closed without an entitlements store:
 
 ```bash
 git clone https://github.com/ArthurVianna96/x-tweet-scraper && cd x-tweet-scraper
-npm install && npm test              # 218 tests, offline, ~0.5s
+npm install && npm test              # 221 tests, offline, ~0.5s
 mkdir -p storage/key_value_stores/default
 echo '{"fromUsers":["apify"],"maxResults":1000}' \
   > storage/key_value_stores/default/INPUT.json
@@ -824,7 +824,7 @@ lookup is more likely to be challenged from a datacenter IP.
 
 |                                                               |                                          |
 | ------------------------------------------------------------- | ---------------------------------------- |
-| `npm test`                                                    | 218 tests, offline, no platform          |
+| `npm test`                                                    | 221 tests, offline, no platform          |
 | `npm run typecheck` / `npm run lint`                          | strict TS, ESLint                        |
 | `npm run probe`                                               | re-derive the endpoint capability matrix |
 | `npx tsx src/tools/capture-fixtures.ts <handles…>`            | refresh committed fixtures from live X   |

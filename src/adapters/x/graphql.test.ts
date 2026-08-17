@@ -145,3 +145,67 @@ describe('XClient resilience (SPEC.md §5.2)', () => {
     expect(client.stats.bytes).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Cold start is not exempt from the taxonomy.
+ *
+ * Found on the Apify platform, not in a test: one benchmark run in three died with
+ * "Client network socket disconnected before secure TLS connection was established"
+ * during the queryId bundle fetch. The bundle fetch and the guest-token mint are
+ * ordinary HTTP over the same paid proxy, and they ran *outside* the retry loop, so a
+ * single transport blip failed the whole run — which brief §3 and §7 forbid.
+ */
+describe('cold-start transport failures are retried, not fatal', () => {
+  /** Fails the first `failures` attempts at `match`, then serves normally. */
+  function flaky(match: string, failures: number) {
+    let seen = 0;
+    const http: HttpClient = async (req) => {
+      if (req.url.includes(match) && seen++ < failures) {
+        throw new Error(
+          'Client network socket disconnected before secure TLS connection was established',
+        );
+      }
+      if (req.url.includes('guest/activate')) return ok({ guest_token: 'tok' });
+      if (req.url.includes('x.com/explore')) {
+        return {
+          statusCode: 200,
+          body: 'https://abs.twimg.com/responsive-web/client-web/main.abc.js',
+          headers: {},
+        };
+      }
+      if (req.url.includes('abs.twimg.com')) {
+        return {
+          statusCode: 200,
+          body: 'e.exports={queryId:"QID1",operationName:"UserTweets",metadata:{featureSwitches:[],fieldToggles:[]}}',
+          headers: {},
+        };
+      }
+      return ok({ data: { ok: true } });
+    };
+
+    const pool = new SessionPool({ http, newProxyUrl: async () => undefined, maxSessions: 5 });
+    const queryIds = new QueryIdResolver(http, () => ({ headers: {} }));
+    return new XClient({ http, pool, queryIds, sleep: async () => {}, random: () => 0 });
+  }
+
+  it('survives a TLS failure while fetching the queryId bundle', async () => {
+    const client = flaky('abs.twimg.com', 1);
+    await expect(client.call('UserTweets', {}, { target: 'apify' })).resolves.toEqual({
+      data: { ok: true },
+    });
+  });
+
+  it('survives a TLS failure while minting the first guest token', async () => {
+    const client = flaky('guest/activate', 1);
+    await expect(client.call('UserTweets', {}, { target: 'apify' })).resolves.toEqual({
+      data: { ok: true },
+    });
+  });
+
+  it('still gives up rather than looping forever when cold start never recovers', async () => {
+    const client = flaky('abs.twimg.com', 99);
+    await expect(client.call('UserTweets', {}, { target: 'apify' })).rejects.toThrow(
+      TargetUnavailableError,
+    );
+  });
+});

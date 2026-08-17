@@ -65,8 +65,34 @@ export class XClient {
     let last: Classification | null = null;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const session = await this.opts.pool.acquire();
-      const meta = await this.opts.queryIds.get(operationName);
+      /**
+       * Cold start is inside the retry loop, not before it.
+       *
+       * Minting a guest token and fetching the ~1.8 MB queryId bundle are ordinary HTTP
+       * over the same paid proxy as everything else, and they fail the same ways. With
+       * these two calls outside the loop, a single transport blip escaped the taxonomy
+       * and failed the whole run — observed on the platform as "Client network socket
+       * disconnected before secure TLS connection was established" during the bundle
+       * fetch, which brief §3 and §7 rule out (SPEC.md §5.2).
+       */
+      let session;
+      let meta;
+      try {
+        session = await this.opts.pool.acquire();
+        meta = await this.opts.queryIds.get(operationName);
+      } catch (err) {
+        last = classifyTransportError(err);
+        this.count(last);
+        this.opts.onEvent?.({
+          type: 'request',
+          operation: operationName,
+          attempt,
+          action: 'retry-cold-start',
+          reason: last.reason,
+        });
+        await sleep(backoffDelayMs(attempt, { random: this.opts.random }));
+        continue;
+      }
 
       const query = new URLSearchParams({
         variables: JSON.stringify(variables),
