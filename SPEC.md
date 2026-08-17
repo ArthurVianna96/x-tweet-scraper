@@ -5,6 +5,7 @@ findings measured on 2026-08-14. Every non-obvious decision below records **why*
 not just what — the reasoning is the defensible part in a follow-up interview.
 
 Companion documents:
+
 - `README-data-source.md` — the architecture/data-source README section
 - `probe-x-endpoints.mjs` — reproduces the endpoint capability matrix
 
@@ -12,16 +13,16 @@ Companion documents:
 
 ## 0. Grading weights → effort allocation
 
-| Weight | Area | Status after spec |
-| --- | --- | --- |
-| 25% | Free-tier protection | designed end-to-end (§4) |
-| 25% | Browserless extraction | designed; contract fully specified (§2, §3) |
-| 15% | Resilience & scale | designed (§5) |
-| 15% | Code quality | conventions owned by Arthur |
-| 10% | Performance | measured; methodology defined (§6) |
-| 10% | Tests & docs | specified (§8, §9) |
+| Weight | Area                   | Status after spec                           |
+| ------ | ---------------------- | ------------------------------------------- |
+| 25%    | Free-tier protection   | designed end-to-end (§4)                    |
+| 25%    | Browserless extraction | designed; contract fully specified (§2, §3) |
+| 15%    | Resilience & scale     | designed (§5)                               |
+| 15%    | Code quality           | conventions owned by Arthur                 |
+| 10%    | Performance            | measured; methodology defined (§6)          |
+| 10%    | Tests & docs           | specified (§8, §9)                          |
 
-Half the grade is two *written arguments* (free-tier design, extraction
+Half the grade is two _written arguments_ (free-tier design, extraction
 approach). Budget README time accordingly — it is not documentation overhead,
 it is the deliverable.
 
@@ -46,15 +47,15 @@ with empty variables; `404` + zero-length body = gated, `422 GRAPHQL_VALIDATION_
 
 **4 of 23 operations are available to guests:**
 
-| Operation | Access | Role in this Actor |
-| --- | --- | --- |
-| `UserByScreenName` | ✅ | handle → `userId` |
-| `UserTweets` | ✅ | **the extraction engine** — complete tweet objects + cursors |
-| `TweetResultByRestId` | ✅ | single-tweet path; off the hot path |
-| `GenericTimelineById` | ✅ | unused |
-| `SearchTimeline` and all search/explore/trend/graph ops | ❌ 404 | — |
+| Operation                                               | Access | Role in this Actor                                           |
+| ------------------------------------------------------- | ------ | ------------------------------------------------------------ |
+| `UserByScreenName`                                      | ✅     | handle → `userId`                                            |
+| `UserTweets`                                            | ✅     | **the extraction engine** — complete tweet objects + cursors |
+| `TweetResultByRestId`                                   | ✅     | single-tweet path; off the hot path                          |
+| `GenericTimelineById`                                   | ✅     | unused                                                       |
+| `SearchTimeline` and all search/explore/trend/graph ops | ❌ 404 | —                                                            |
 
-**Consequence:** keyword and hashtag *search* is closed. Guest access is exactly the
+**Consequence:** keyword and hashtag _search_ is closed. Guest access is exactly the
 surface a logged-out browser renders: one profile, or one tweet.
 
 **Chosen architecture (D1):** separate **discovery** (which accounts) from
@@ -74,7 +75,7 @@ UserTweets (cursored, live) ──→ filter ──→ ResultSink ──→ data
 
 **Critical simplification:** `UserTweets` returns **complete** tweet objects — full
 text, all six metrics, entities, media, author. **There is no per-tweet hydration
-step.** Cost unit is *one request ≈ 20 tweets*, not one request per tweet.
+step.** Cost unit is _one request ≈ 20 tweets_, not one request per tweet.
 `TweetResultByRestId` remains in the port for externally-supplied IDs only.
 
 **Seed expansion** is native: one `UserTweets` page yields ~37 distinct handles from
@@ -102,37 +103,37 @@ guarantees breakage.
 Validated with **zod at the boundary**. Malformed input → clear error, exit non-zero.
 Unspecified filter = **no constraint**. Combining filters = **AND**.
 
-| Field | Type | Ruling |
-| --- | --- | --- |
-| `searchTerms` | `string[]` | keyword match against normalized `text`, case-insensitive |
-| `fromUsers` | `string[]` | handles without `@`; used as discovery seeds directly |
-| `toUsers` / `mentioning` | `string[]` | client-side: reply-to OR mention of these handles |
-| `hashtags` | `string[]` | without `#`; matched against `entities.hashtags`, case-insensitive |
-| `since` / `until` | ISO date | **inclusive**; applied via Snowflake before any fetch |
-| `language` | ISO-639-1 | `legacy.lang` (X's own detection) |
-| `minLikes` / `minRetweets` / `minReplies` | int | inclusive floors |
-| `onlyVerified` | boolean | see ruling below |
-| `mediaType` | enum | see rulings below |
-| `includeReplies` / `includeRetweets` | boolean | **both default `false`** |
-| `sortBy` | `latest` \| `top` | see ruling below |
-| `maxResults` | int | requested cap; subject to §4 gate |
-| `proxyConfiguration` | object | standard Apify proxy object |
+| Field                                     | Type              | Ruling                                                             |
+| ----------------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `searchTerms`                             | `string[]`        | keyword match against normalized `text`, case-insensitive          |
+| `fromUsers`                               | `string[]`        | handles without `@`; used as discovery seeds directly              |
+| `toUsers` / `mentioning`                  | `string[]`        | client-side: reply-to OR mention of these handles                  |
+| `hashtags`                                | `string[]`        | without `#`; matched against `entities.hashtags`, case-insensitive |
+| `since` / `until`                         | ISO date          | **inclusive**; applied via Snowflake before any fetch              |
+| `language`                                | ISO-639-1         | `legacy.lang` (X's own detection)                                  |
+| `minLikes` / `minRetweets` / `minReplies` | int               | inclusive floors                                                   |
+| `onlyVerified`                            | boolean           | see ruling below                                                   |
+| `mediaType`                               | enum              | see rulings below                                                  |
+| `includeReplies` / `includeRetweets`      | boolean           | **both default `false`**                                           |
+| `sortBy`                                  | `latest` \| `top` | see ruling below                                                   |
+| `maxResults`                              | int               | requested cap; subject to §4 gate                                  |
+| `proxyConfiguration`                      | object            | standard Apify proxy object                                        |
 
 **At least one of `searchTerms`, `fromUsers`, `hashtags` is required.**
 
 **Rulings the brief leaves undefined** — each must appear in the README, because a
 reviewer will diff documented behaviour against actual behaviour:
 
-| Ruling | Decision | Why |
-| --- | --- | --- |
-| `mediaType: images` | matches if **≥1 photo**, regardless of other content | "tweets with images" is the natural reading; "photos only" surprises |
-| `animated_gif` | grouped under `video` | X stores GIFs as MP4; §4 offers no `gif` value |
-| `mediaType: links` | ≥1 entry in `entities.urls` | — |
-| `mediaType: text_only` | **no media AND no links** | `links` is a separate enum value; permitting links in `text_only` makes the enum incoherent |
-| `onlyVerified` | `is_blue_verified === true \|\| verification.verified === true` | X conflates paid Blue with legacy verification since 2023; §5's single boolean cannot distinguish. Never key off `verified_type` — `@apify` returns `verified_type: "Business"` with `verified: false` |
-| `includeReplies` default | `false` | §4 specifies the default only for retweets; we default both to `false` and document the ambiguity |
-| `sortBy: latest` | descending Snowflake ID | IDs are monotonic → ID order *is* chronological order |
-| `sortBy: top` | descending `likes + retweets` within the collected set | X's relevance ranking is not reproducible from the guest surface — **declared out of scope** |
+| Ruling                   | Decision                                                        | Why                                                                                                                                                                                                    |
+| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mediaType: images`      | matches if **≥1 photo**, regardless of other content            | "tweets with images" is the natural reading; "photos only" surprises                                                                                                                                   |
+| `animated_gif`           | grouped under `video`                                           | X stores GIFs as MP4; §4 offers no `gif` value                                                                                                                                                         |
+| `mediaType: links`       | ≥1 entry in `entities.urls`                                     | —                                                                                                                                                                                                      |
+| `mediaType: text_only`   | **no media AND no links**                                       | `links` is a separate enum value; permitting links in `text_only` makes the enum incoherent                                                                                                            |
+| `onlyVerified`           | `is_blue_verified === true \|\| verification.verified === true` | X conflates paid Blue with legacy verification since 2023; §5's single boolean cannot distinguish. Never key off `verified_type` — `@apify` returns `verified_type: "Business"` with `verified: false` |
+| `includeReplies` default | `false`                                                         | §4 specifies the default only for retweets; we default both to `false` and document the ambiguity                                                                                                      |
+| `sortBy: latest`         | descending Snowflake ID                                         | IDs are monotonic → ID order _is_ chronological order                                                                                                                                                  |
+| `sortBy: top`            | descending `likes + retweets` within the collected set          | X's relevance ranking is not reproducible from the guest surface — **declared out of scope**                                                                                                           |
 
 **`INPUT_SCHEMA.json`**: do **not** declare `"maximum": 10` on `maxResults`. It would
 break paying users, and a limit expressed in the input schema is exactly the
@@ -144,37 +145,37 @@ client-side artifact §6 forbids as protection. Document the free cap in the fie
 Every item conforms exactly. **Missing values are `null` — never omitted, never
 `undefined`.** Timestamps ISO-8601 UTC. Counts are integers. IDs are strings.
 
-| §5 field | Source path | Notes |
-| --- | --- | --- |
-| `id` | `result.rest_id` | string, never a JS number |
-| `url` | `https://x.com/<username>/status/<id>` | built, not read |
-| `text` | see pipeline below | |
-| `lang` | `legacy.lang` | |
-| `createdAt` | `legacy.created_at` | `"Fri Aug 14 15:38:52 +0000 2026"` → ISO |
-| `conversationId` | `legacy.conversation_id_str` | |
-| `isReply` | `in_reply_to_status_id_str != null` | structural |
-| `isRetweet` | `'retweeted_status_result' in legacy` | structural |
-| `isQuote` | `legacy.is_quote_status === true` | structural |
-| `inReplyToId` | `legacy.in_reply_to_status_id_str` | |
-| `quotedTweetId` | `legacy.quoted_status_id_str` | |
-| `author.id` | `core.user_results.result.rest_id` | |
-| `author.username` | `…result.core.screen_name` | **not** `legacy.screen_name` |
-| `author.name` | `…result.core.name` | |
-| `author.verified` | `is_blue_verified \|\| verification.verified` | |
-| `author.followers` | `…result.relationship_counts.followers` | **`legacy.followers_count` no longer exists** |
-| `author.following` | `…result.relationship_counts.following` | |
-| `metrics.likes` | `legacy.favorite_count` | |
-| `metrics.retweets` | `legacy.retweet_count` | |
-| `metrics.replies` | `legacy.reply_count` | |
-| `metrics.quotes` | `legacy.quote_count` | |
-| `metrics.bookmarks` | `legacy.bookmark_count` | |
-| `metrics.views` | `result.views.count` | **coerce to number** — may arrive as a string |
-| `entities.hashtags` | `entities.hashtags[].text` | without `#` |
-| `entities.mentions` | `entities.user_mentions[].screen_name` | without `@` |
-| `entities.urls` | `entities.urls[].expanded_url` | expanded, not `t.co` |
-| `entities.media` | `extended_entities.media[]` | `{type, url: media_url_https, thumbnail}` |
-| `source` | `result.source`, HTML stripped | `<a …>Twitter Web App</a>` → `"Twitter Web App"` |
-| `scrapedAt` | now, ISO | |
+| §5 field            | Source path                                   | Notes                                            |
+| ------------------- | --------------------------------------------- | ------------------------------------------------ |
+| `id`                | `result.rest_id`                              | string, never a JS number                        |
+| `url`               | `https://x.com/<username>/status/<id>`        | built, not read                                  |
+| `text`              | see pipeline below                            |                                                  |
+| `lang`              | `legacy.lang`                                 |                                                  |
+| `createdAt`         | `legacy.created_at`                           | `"Fri Aug 14 15:38:52 +0000 2026"` → ISO         |
+| `conversationId`    | `legacy.conversation_id_str`                  |                                                  |
+| `isReply`           | `in_reply_to_status_id_str != null`           | structural                                       |
+| `isRetweet`         | `'retweeted_status_result' in legacy`         | structural                                       |
+| `isQuote`           | `legacy.is_quote_status === true`             | structural                                       |
+| `inReplyToId`       | `legacy.in_reply_to_status_id_str`            |                                                  |
+| `quotedTweetId`     | `legacy.quoted_status_id_str`                 |                                                  |
+| `author.id`         | `core.user_results.result.rest_id`            |                                                  |
+| `author.username`   | `…result.core.screen_name`                    | **not** `legacy.screen_name`                     |
+| `author.name`       | `…result.core.name`                           |                                                  |
+| `author.verified`   | `is_blue_verified \|\| verification.verified` |                                                  |
+| `author.followers`  | `…result.relationship_counts.followers`       | **`legacy.followers_count` no longer exists**    |
+| `author.following`  | `…result.relationship_counts.following`       |                                                  |
+| `metrics.likes`     | `legacy.favorite_count`                       |                                                  |
+| `metrics.retweets`  | `legacy.retweet_count`                        |                                                  |
+| `metrics.replies`   | `legacy.reply_count`                          |                                                  |
+| `metrics.quotes`    | `legacy.quote_count`                          |                                                  |
+| `metrics.bookmarks` | `legacy.bookmark_count`                       |                                                  |
+| `metrics.views`     | `result.views.count`                          | **coerce to number** — may arrive as a string    |
+| `entities.hashtags` | `entities.hashtags[].text`                    | without `#`                                      |
+| `entities.mentions` | `entities.user_mentions[].screen_name`        | without `@`                                      |
+| `entities.urls`     | `entities.urls[].expanded_url`                | expanded, not `t.co`                             |
+| `entities.media`    | `extended_entities.media[]`                   | `{type, url: media_url_https, thumbnail}`        |
+| `source`            | `result.source`, HTML stripped                | `<a …>Twitter Web App</a>` → `"Twitter Web App"` |
+| `scrapedAt`         | now, ISO                                      |                                                  |
 
 **The `text` pipeline — order is load-bearing:**
 
@@ -247,16 +248,16 @@ const me = await new ApifyClient({ token: process.env.APIFY_TOKEN }).user('me').
 const runnerUserId = me.id;
 ```
 
-**Not** `Actor.getEnv().userId`. Per Apify docs, `APIFY_USER_ID` is *"ID of the user who
-started the Actor"* and `APIFY_TOKEN` is *"API token of the user who started the Actor."*
+**Not** `Actor.getEnv().userId`. Per Apify docs, `APIFY_USER_ID` is _"ID of the user who
+started the Actor"_ and `APIFY_TOKEN` is _"API token of the user who started the Actor."_
 §6 explicitly names environment variables as untrusted, and the token is strictly
 stronger: it is a **credential the authority validates**, not an **unverified claim**.
 Self-validating — a forged token is either invalid (→ fail closed → free) or genuinely
-another account's (→ correctly returns *their* entitlement).
+another account's (→ correctly returns _their_ entitlement).
 
 ### 4.2 Entitlement — a store only we can write
 
-**The trap:** the run's `APIFY_TOKEN` belongs to the *runner*, so `Actor.apifyClient`,
+**The trap:** the run's `APIFY_TOKEN` belongs to the _runner_, so `Actor.apifyClient`,
 `Actor.getValue()` and the default KV store are all authenticated **as them**. A private
 store on our account is unreachable that way.
 
@@ -264,7 +265,8 @@ store on our account is unreachable that way.
 
 ```ts
 const key = createHmac('sha256', process.env.ENTITLEMENTS_HMAC_KEY!)
-  .update(runnerUserId).digest('hex');
+  .update(runnerUserId)
+  .digest('hex');
 ```
 
 - Public store → the runner's own token can read it; no API token needed at read time.
@@ -275,8 +277,8 @@ const key = createHmac('sha256', process.env.ENTITLEMENTS_HMAC_KEY!)
   already public. Prefer the credential whose leak costs least.
 
 **`ENTITLEMENTS_HMAC_KEY` must be marked `Secret` in the Apify Console.** Per Apify's
-publishing docs, a published Actor's *"source code files and non-secret environment
-variables are publicly visible by default."* A plain env var would publish the key on
+publishing docs, a published Actor's _"source code files and non-secret environment
+variables are publicly visible by default."_ A plain env var would publish the key on
 the Actor detail page — a total compromise of the authority.
 
 ### 4.3 Enforcement — one chokepoint, lazily consumed
@@ -288,8 +290,8 @@ class ResultSink {
 
   /** @returns false when the cap is reached — caller must stop. */
   async push(item: Tweet): Promise<boolean> {
-    if (this.pushed >= this.opts.cap) return false;  // check…
-    this.pushed++;                                   // …and increment, no await between
+    if (this.pushed >= this.opts.cap) return false; // check…
+    this.pushed++; // …and increment, no await between
     await this.opts.push(item);
     return this.pushed < this.opts.cap;
   }
@@ -297,18 +299,19 @@ class ResultSink {
 ```
 
 ```ts
-for await (const tweet of crawl(seeds)) {     // lazy: pages cursors on demand
+for await (const tweet of crawl(seeds)) {
+  // lazy: pages cursors on demand
   if (!matches(tweet, filters)) continue;
-  if (!(await sink.push(tweet))) break;       // unwinds the generator chain
+  if (!(await sink.push(tweet))) break; // unwinds the generator chain
 }
 ```
 
 `break` stops the consumer → stops the crawl → stops cursor paging. A free user with
-`maxResults: 1000` fetches ~1 page and exits. This is §6's *"stops fetching and pushing
-at 10 regardless of any input"* — **not** clamping `maxResults` at the top, which §6
+`maxResults: 1000` fetches ~1 page and exits. This is §6's _"stops fetching and pushing
+at 10 regardless of any input"_ — **not** clamping `maxResults` at the top, which §6
 explicitly rejects. Clamp too, as an optimisation; the sink is the invariant.
 
-**Concurrency hazard:** with parallel account chains, `pushed++` must sit *above*
+**Concurrency hazard:** with parallel account chains, `pushed++` must sit _above_
 `await push(...)`. Any `await` between check and increment reintroduces a race that
 lets N workers each pass the check. Swapping those two lines produces an intermittent
 bug that passes every test in §8.
@@ -316,7 +319,7 @@ bug that passes every test in §8.
 ### 4.4 Fail-closed
 
 ```ts
-const isPaid = entitlement?.paid === true;   // ✅ undefined → false → free
+const isPaid = entitlement?.paid === true; // ✅ undefined → false → free
 // const isPaid = entitlement?.paid !== false;  ❌ undefined → true → unlimited
 ```
 
@@ -349,8 +352,8 @@ They cannot reduce `itemCount` without deleting the results they were trying to
 accumulate. Additionally: **re-resolve entitlement on resume**; never cache the
 paid/free verdict in runner-writable storage.
 
-Principle: *persisted state is fine for cursors — worst case the user re-scrapes and
-pays for it. It is not fine for the counter that enforces the cap.*
+Principle: _persisted state is fine for cursors — worst case the user re-scrapes and
+pays for it. It is not fine for the counter that enforces the cap._
 
 ### 4.6 Transparency
 
@@ -365,17 +368,17 @@ emitted as a structured log line.
 
 ### 4.7 Anti-fork — a README argument, not code
 
-§6 asks only to *"briefly discuss in the README."* **Do not build anti-fork machinery.**
+§6 asks only to _"briefly discuss in the README."_ **Do not build anti-fork machinery.**
 
-- **Layer 0 — Distribution.** Production: private repo. *(This submission is public per §9.)*
+- **Layer 0 — Distribution.** Production: private repo. _(This submission is public per §9.)_
 - **Layer 1 — Platform.** `Settings → Hide source files from Actor detail`, or the Store
   republishes the source regardless of where git lives.
 - **Layer 2 — Credential.** HMAC key as a **Secret** env var: absent from repo, absent
   from the public env listing, unreadable via API or Console.
 - **Layer 3 — Authority.** The verdict comes from a store only our token can write. A fork
-  cannot *impersonate* a paid user — only *delete the check*.
-- **Layer 4 — The honest limit.** Deletion is unpreventable. A *permission* check asks the
-  server a question and can be removed; only a *capability* the server supplies cannot.
+  cannot _impersonate_ a paid user — only _delete the check_.
+- **Layer 4 — The honest limit.** Deletion is unpreventable. A _permission_ check asks the
+  server a question and can be removed; only a _capability_ the server supplies cannot.
   A capability moat must rest on something **expensive to reproduce or perishable** —
   not merely hidden. Guest tokens are freely mintable and queryIds are freely
   extractable, so this task has no genuine capability moat. The real moat is the Store
@@ -397,25 +400,25 @@ fork-proof, and that is the correct trade for this deliverable.**
 Pin `(guestToken, proxySession, userAgent)` — created together, retired together, using
 Apify Proxy `session` IDs for a sticky IP.
 
-**Why pin:** X's abuse detection looks for *coherence*. A real browser is one token, one
+**Why pin:** X's abuse detection looks for _coherence_. A real browser is one token, one
 IP, one UA for a session. One token arriving from 12 residential IPs in 90 seconds is a
 pattern no browser produces. And 50 req/15 min **is the budget X grants** — staying
 inside it looks like one person browsing, not evasion.
 
-**What hopping leaks:** the cross-product. Token T on IPs 1–12 *and* IP 1 serving tokens
+**What hopping leaks:** the cross-product. Token T on IPs 1–12 _and_ IP 1 serving tokens
 A–L makes the whole pool linkable from any single observation. Pinning caps the loss of
 any burned triple at 1/N of capacity.
 
 ### 5.2 Error taxonomy
 
-| Signal | Action | Rationale |
-| --- | --- | --- |
-| `429` | **Rotate to a fresh triple immediately** | Minting is free and instant; waiting 15 min when a new token costs ~200 ms is the largest available throughput mistake. Global backoff only when the whole pool is spent. |
-| `403` on a permitted op | rotate the guest token | classic guest-token expiry |
-| `404` on a permitted op for a known handle | **terminal, not retryable** | protected / suspended / deleted account. Log, count, skip, continue (§11 bonus) |
-| `5xx` | retry with backoff | transient (§7: retryable) |
-| socket timeout | retry with backoff | transient |
-| `400` / malformed input | fatal | non-recoverable |
+| Signal                                     | Action                                   | Rationale                                                                                                                                                                 |
+| ------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `429`                                      | **Rotate to a fresh triple immediately** | Minting is free and instant; waiting 15 min when a new token costs ~200 ms is the largest available throughput mistake. Global backoff only when the whole pool is spent. |
+| `403` on a permitted op                    | rotate the guest token                   | classic guest-token expiry                                                                                                                                                |
+| `404` on a permitted op for a known handle | **terminal, not retryable**              | protected / suspended / deleted account. Log, count, skip, continue (§11 bonus)                                                                                           |
+| `5xx`                                      | retry with backoff                       | transient (§7: retryable)                                                                                                                                                 |
+| socket timeout                             | retry with backoff                       | transient                                                                                                                                                                 |
+| `400` / malformed input                    | fatal                                    | non-recoverable                                                                                                                                                           |
 
 **Proactive budgeting beats reactive backoff.** Every response carries
 `x-rate-limit-remaining` and `x-rate-limit-reset` (epoch). Retire a triple at
@@ -437,12 +440,12 @@ floored on `dataset.itemCount` (§4.5), never trusted from storage.**
 **Measured:** ~20 tweets/page (`count: 100` is silently ignored), ~1.4 s/page (211 KB),
 50 requests/15 min per token, cursors via `cursorType: "Bottom"`.
 
-The binding constraint is the **request budget**, not latency — which is why a *pool* of
+The binding constraint is the **request budget**, not latency — which is why a _pool_ of
 triples is the core design, not an optimisation.
 
 **Parallelism model:** N bounded-concurrency account chains, each an independent cursor
 sequence, all feeding one `ResultSink`. Cursor chains cannot be parallelised internally;
-parallelising *across accounts* is the equivalent of time-window sharding a search query.
+parallelising _across accounts_ is the equivalent of time-window sharding a search query.
 
 **Reporting.** §8's benchmark query requires `SearchTimeline` and cannot run. Keep their
 **protocol** (timer starts at first outbound request, stops at the 100th
@@ -473,30 +476,38 @@ Structured logs throughout. Final summary written to `OUTPUT` and logged:
 
 ```jsonc
 {
-  "requested": 500, "fetched": 340, "pushed": 100,
-  "limited": false, "reason": null, "cap": null,
-  "seedsResolved": 12, "accountsCrawled": 12, "pagesFetched": 21,
-  "filteredOut": 240, "selectivity": 0.29,
+  "requested": 500,
+  "fetched": 340,
+  "pushed": 100,
+  "limited": false,
+  "reason": null,
+  "cap": null,
+  "seedsResolved": 12,
+  "accountsCrawled": 12,
+  "pagesFetched": 21,
+  "filteredOut": 240,
+  "selectivity": 0.29,
   "duplicatesDropped": 18,
   "accountsSkipped": { "protected": 1, "suspended": 0, "notFound": 2 },
-  "tokensConsumed": 3, "errors": { "429": 0, "5xx": 1, "timeout": 0 },
+  "tokensConsumed": 3,
+  "errors": { "429": 0, "5xx": 1, "timeout": 0 },
   "estimatedCostPer1kResults": { "proxyGB": 0.42, "computeUnits": 0.08, "usd": 0.31 },
-  "wallClockMs": 27140
+  "wallClockMs": 27140,
 }
 ```
 
 ---
 
-## 8. Tests (§7 — the cap test is *required*)
+## 8. Tests (§7 — the cap test is _required_)
 
 **Seam: constructor injection (Shape A).** `ResultSink` takes `{ cap, push }`;
 the entitlement resolver takes a fetcher. No platform, no network in unit tests.
 
-| Suite | Cases |
-| --- | --- |
-| **Free-tier cap** *(required)* | free + `maxResults: 1000` → **exactly 10**; paid + `maxResults: 1000` → 1000; `sink.push` returns `false` at the cap; **crawl stops** (assert the discovery generator is not pulled again); counter survives a simulated migration (persist → restore → pushes 0 more); entitlement lookup throws → free; entitlement returns `undefined` → free |
-| **Normalizer** | retweet → full text not the 140-char truncation; long-form → `note_tweet` text not `legacy.full_text`; `&amp;` decoded; `t.co` expanded; `author.followers` from `relationship_counts`; `views` string → number; every absent field is `null`, never `undefined`; nested retweeted/quoted originals are **not** emitted as separate items |
-| **Filter logic** | each of the 13 filters in isolation; AND-combination; unspecified = no constraint; `mediaType` rulings from §3.1; `text_only` excludes links; `onlyVerified` with `verified_type: "Business"` + `verified: false` → not verified; Snowflake `since`/`until` boundaries are inclusive |
+| Suite                          | Cases                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Free-tier cap** _(required)_ | free + `maxResults: 1000` → **exactly 10**; paid + `maxResults: 1000` → 1000; `sink.push` returns `false` at the cap; **crawl stops** (assert the discovery generator is not pulled again); counter survives a simulated migration (persist → restore → pushes 0 more); entitlement lookup throws → free; entitlement returns `undefined` → free |
+| **Normalizer**                 | retweet → full text not the 140-char truncation; long-form → `note_tweet` text not `legacy.full_text`; `&amp;` decoded; `t.co` expanded; `author.followers` from `relationship_counts`; `views` string → number; every absent field is `null`, never `undefined`; nested retweeted/quoted originals are **not** emitted as separate items        |
+| **Filter logic**               | each of the 13 filters in isolation; AND-combination; unspecified = no constraint; `mediaType` rulings from §3.1; `text_only` excludes links; `onlyVerified` with `verified_type: "Business"` + `verified: false` → not verified; Snowflake `since`/`until` boundaries are inclusive                                                             |
 
 **Fixtures**: committed real payloads (retweet, long-form, quote, media, reply,
 protected-account 404). Deterministic and offline.
