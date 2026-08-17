@@ -45,18 +45,25 @@ Measured, reproducible via `probe-x-endpoints.mjs`. Method: call each operation
 with empty variables; `404` + zero-length body = gated, `422 GRAPHQL_VALIDATION_FAILED`
 = permitted (reached validation).
 
-**4 of 23 operations are available to guests:**
+**5 of 23 operations are available to guests** (was 4; `TrendHistory` opened between
+2026-08-14 and 2026-08-17, which is itself the argument for runtime queryId resolution):
 
 | Operation                                               | Access | Role in this Actor                                           |
 | ------------------------------------------------------- | ------ | ------------------------------------------------------------ |
-| `UserByScreenName`                                      | ✅     | handle → `userId`                                            |
 | `UserTweets`                                            | ✅     | **the extraction engine** — complete tweet objects + cursors |
-| `TweetResultByRestId`                                   | ✅     | single-tweet path; off the hot path                          |
+| `UserByScreenName`                                      | ✅     | the **profile surface** — handle → `userId` and §5 `author`  |
+| `TweetResultByRestId`                                   | ✅     | the **by-id surface** — `tweetIds`, one request per id       |
 | `GenericTimelineById`                                   | ✅     | unused                                                       |
+| `TrendHistory`                                          | ✅     | trend metadata only, no tweets — unused                      |
 | `SearchTimeline` and all search/explore/trend/graph ops | ❌ 404 | —                                                            |
 
-**Consequence:** keyword and hashtag _search_ is closed. Guest access is exactly the
-surface a logged-out browser renders: one profile, or one tweet.
+**Consequence:** free-text _search_ is closed, and the three surfaces §2a requires are
+open. Guest access is exactly the surface a logged-out browser renders: one profile, or
+one tweet — which is why the required set and the reachable set coincide.
+
+Per §2a, `searchTerms` is a **stretch**, not a requirement. We implement it anyway, through
+a public web index that seeds account discovery (§2 of the README), and declare its
+seed-bounded recall rather than presenting it as parity with the required surfaces.
 
 **Chosen architecture (D1):** separate **discovery** (which accounts) from
 **extraction** (their tweets). One external lookup resolves a topic → candidate
@@ -105,10 +112,10 @@ Unspecified filter = **no constraint**. Combining filters = **AND**.
 
 | Field                                     | Type              | Ruling                                                             |
 | ----------------------------------------- | ----------------- | ------------------------------------------------------------------ |
-| `searchTerms`                             | `string[]`        | keyword match against normalized `text`, case-insensitive          |
-| `fromUsers`                               | `string[]`        | handles without `@`; used as discovery seeds directly              |
-| `toUsers` / `mentioning`                  | `string[]`        | client-side: reply-to OR mention of these handles                  |
-| `hashtags`                                | `string[]`        | without `#`; matched against `entities.hashtags`, case-insensitive |
+| `fromUsers`                               | `string[]`        | **target.** handles without `@`; used as discovery seeds directly  |
+| `tweetIds`                                | `string[]`        | **target.** numeric ids hydrated one request each                  |
+| `searchTerms`                             | `string[]`        | **target (stretch).** keyword match against normalized `text`      |
+| `hashtags`                                | `string[]`        | post-filter only; without `#`, matched against `entities.hashtags` |
 | `since` / `until`                         | ISO date          | **inclusive**; applied via Snowflake before any fetch              |
 | `language`                                | ISO-639-1         | `legacy.lang` (X's own detection)                                  |
 | `minLikes` / `minRetweets` / `minReplies` | int               | inclusive floors                                                   |
@@ -119,21 +126,24 @@ Unspecified filter = **no constraint**. Combining filters = **AND**.
 | `maxResults`                              | int               | requested cap; subject to §4 gate                                  |
 | `proxyConfiguration`                      | object            | standard Apify proxy object                                        |
 
-**At least one of `searchTerms`, `fromUsers`, `hashtags` is required.**
+**At least one of `fromUsers`, `tweetIds`, `searchTerms` is required** (§4). `hashtags` is
+**not** a target: it constrains the timelines a target produced, so a hashtags-only run has
+nothing to fetch from and is rejected at the boundary.
 
 **Rulings the brief leaves undefined** — each must appear in the README, because a
 reviewer will diff documented behaviour against actual behaviour:
 
-| Ruling                   | Decision                                                        | Why                                                                                                                                                                                                    |
-| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mediaType: images`      | matches if **≥1 photo**, regardless of other content            | "tweets with images" is the natural reading; "photos only" surprises                                                                                                                                   |
-| `animated_gif`           | grouped under `video`                                           | X stores GIFs as MP4; §4 offers no `gif` value                                                                                                                                                         |
-| `mediaType: links`       | ≥1 entry in `entities.urls`                                     | —                                                                                                                                                                                                      |
-| `mediaType: text_only`   | **no media AND no links**                                       | `links` is a separate enum value; permitting links in `text_only` makes the enum incoherent                                                                                                            |
-| `onlyVerified`           | `is_blue_verified === true \|\| verification.verified === true` | X conflates paid Blue with legacy verification since 2023; §5's single boolean cannot distinguish. Never key off `verified_type` — `@apify` returns `verified_type: "Business"` with `verified: false` |
-| `includeReplies` default | `false`                                                         | §4 specifies the default only for retweets; we default both to `false` and document the ambiguity                                                                                                      |
-| `sortBy: latest`         | descending Snowflake ID                                         | IDs are monotonic → ID order _is_ chronological order                                                                                                                                                  |
-| `sortBy: top`            | descending `likes + retweets` within the collected set          | X's relevance ranking is not reproducible from the guest surface — **declared out of scope**                                                                                                           |
+| Ruling                          | Decision                                                        | Why                                                                                                                                                                                                    |
+| ------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mediaType: images`             | matches if **≥1 photo**, regardless of other content            | "tweets with images" is the natural reading; "photos only" surprises                                                                                                                                   |
+| `animated_gif`                  | grouped under `video`                                           | X stores GIFs as MP4; §4 offers no `gif` value                                                                                                                                                         |
+| `mediaType: links`              | ≥1 entry in `entities.urls`                                     | —                                                                                                                                                                                                      |
+| `mediaType: text_only`          | **no media AND no links**                                       | `links` is a separate enum value; permitting links in `text_only` makes the enum incoherent                                                                                                            |
+| `onlyVerified`                  | `is_blue_verified === true \|\| verification.verified === true` | X conflates paid Blue with legacy verification since 2023; §5's single boolean cannot distinguish. Never key off `verified_type` — `@apify` returns `verified_type: "Business"` with `verified: false` |
+| `includeReplies` default        | `false`                                                         | §4 specifies the default only for retweets; we default both to `false` and document the ambiguity                                                                                                      |
+| `sortBy: latest`                | descending Snowflake ID                                         | IDs are monotonic → ID order _is_ chronological order                                                                                                                                                  |
+| `sortBy: top`                   | descending `likes + retweets` within the collected set          | X's relevance ranking is not reproducible from the guest surface — **declared out of scope**                                                                                                           |
+| `tweetIds` vs structure filters | an explicit id opts into replies and retweets                   | naming a tweet by id _is_ the selection; `includeReplies`/`includeRetweets` shape a timeline sweep, and applying their `false` defaults here silently drops the exact tweet requested                  |
 
 **`INPUT_SCHEMA.json`**: do **not** declare `"maximum": 10` on `maxResults`. It would
 break paying users, and a limit expressed in the input schema is exactly the
@@ -539,9 +549,9 @@ on drift. Out of scope here.
 
 - **`sortBy: top`** is approximated by engagement ranking within the collected set;
   X's relevance ranking is not reproducible from the guest surface.
-- **Keyword/hashtag recall is seed-bounded** — tweets from accounts that discuss the
-  topic, not every tweet on X. A hard ceiling of the guest surface, not a shortcut.
-- **The §8 benchmark is substituted**, with methodology declared (§6).
-- **`toUsers`/`mentioning`** behave as client-side filters over the seed set, not as a
-  true mention index — no such index is reachable.
+- **`searchTerms` recall is seed-bounded** — tweets from accounts that discuss the topic,
+  not every tweet on X. A hard ceiling of the guest surface, and the reason §2a scopes
+  search as a stretch. The three required surfaces have no such ceiling.
+- **`toUsers`/`mentioning` are not implemented** — brief v2 removed them from the input
+  schema, and they were only ever there to satisfy that row.
 - **Live contract testing** against X is not automated (§8).

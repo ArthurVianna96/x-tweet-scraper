@@ -8,9 +8,9 @@ this file is only _how we write the code_. When the two disagree, `SPEC.md` wins
 ```
 src/
   domain/    pure logic. No I/O, no Apify, no fetch. Fully unit-testable offline.
-             normalizer · filters · result-sink · entitlement policy · snowflake
+             filters · result-sink · collect · entitlement policy · snowflake
   adapters/  everything that talks to the outside world, behind a port defined in domain/
-             x/ (guest tokens, queryIds, GraphQL) · discovery/ · entitlement/ · apify/
+             x/ (guest tokens, queryIds, GraphQL, normalizer) · discovery/ · entitlement/ · http/
   actor/     the composition root: input parsing, wiring, run summary, main.
 test/
   fixtures/  committed real X payloads. Deterministic, offline.

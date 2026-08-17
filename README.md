@@ -23,7 +23,7 @@ control.
 
 ```bash
 npm install
-npm test                     # 208 tests, offline, ~0.5s
+npm test                     # 218 tests, offline, ~0.5s
 npm run probe                # re-derive the endpoint capability matrix (~20s, no credentials)
 npm run start:dev            # run the Actor locally
 ```
@@ -32,6 +32,26 @@ Every measurement quoted below is reproducible. `npm run probe` re-runs the endp
 probe, `src/tools/benchmark.ts` re-runs the performance numbers, and every run writes its
 own diagnostics to `OUTPUT` so you can contradict the claims with the Actor itself. The
 raw evidence, with dates, is in [`docs/README-data-source.md`](docs/README-data-source.md).
+
+### Which surfaces are implemented
+
+The brief (§2a) asks us to say this plainly, so:
+
+| Surface                | Operation                           | Status                                      |
+| ---------------------- | ----------------------------------- | ------------------------------------------- |
+| **Tweets by author**   | `UserTweets`                        | ✅ required — the extraction engine         |
+| **Single tweet by id** | `TweetResultByRestId`               | ✅ required — `tweetIds`, one request each  |
+| **Profile by handle**  | `UserByScreenName`                  | ✅ required — returns §5's `author` in full |
+| **Free-text search**   | `SearchTimeline` is `404` to guests | ⚠️ **stretch, served a different way** (§2) |
+
+All three required surfaces are guest-reachable, browserless, and at the §5 schema.
+
+`searchTerms` works, but not through X: X's search timeline is walled to guests, so the
+keywords are answered by seeding account discovery from a public web index and filtering
+natively (§2). That is the "equivalent public HTTP source you justify" route rather than
+the programmatic-auth route, and its honest limitation is that **recall is seed-bounded** —
+you get matching tweets from accounts that discuss the topic, not every tweet on X (§9).
+It is not rejected as unsupported; it is implemented, measured, and scoped.
 
 ---
 
@@ -52,15 +72,18 @@ raw evidence, with dates, is in [`docs/README-data-source.md`](docs/README-data-
 
 ## 1. The finding everything rests on
 
-The brief asks for keyword search. X does not offer one to guests.
+The brief says X's search timeline is auth-walled to guests, and asks us to work out
+**which operations are guest-reachable today** and scope the feature set around them. So
+the interesting question is not whether `SearchTimeline` is closed — it is closed — but
+where exactly the wall runs.
 
-`SearchTimeline` — the operation behind x.com/search — returns `404` with a zero-length
-body to a guest token. From every host, method and product variant we tried. The guest
-tokens themselves are perfectly healthy; the gate is on the _operation_.
+`SearchTimeline` returns `404` with a zero-length body to a guest token, from every host,
+method and product variant we tried. The guest tokens themselves are perfectly healthy;
+the gate is on the _operation_.
 
-That is a strong claim, so it is measured rather than asserted. `npm run probe` reproduces
-it in about 20 seconds without credentials, and the method turns on one useful detail:
-**X distinguishes refusal from rejection by status code.**
+Rather than take that on trust, `npm run probe` re-derives the whole matrix in about 20
+seconds without credentials. The method turns on one useful detail: **X distinguishes
+refusal from rejection by status code.**
 
 | Status                          | What it means                                                                |
 | ------------------------------- | ---------------------------------------------------------------------------- |
@@ -73,19 +96,21 @@ permitted answer with a descriptive `422` on the same token in the same second.
 
 Of 23 operations probed on 2026-08-17, **five are open to guests**:
 
-| Open to guests        | What it gives us                                         |
-| --------------------- | -------------------------------------------------------- |
-| `UserByScreenName`    | handle → `userId`                                        |
-| `UserTweets`          | **the extraction engine** — full tweet objects + cursors |
-| `TweetResultByRestId` | one tweet by id, off the hot path                        |
-| `GenericTimelineById` | unused                                                   |
-| `TrendHistory`        | trend metadata, no tweets — _and newly permitted_        |
+| Open to guests        | What it gives us                                                  |
+| --------------------- | ----------------------------------------------------------------- |
+| `UserTweets`          | **the extraction engine** — full tweet objects + cursors          |
+| `UserByScreenName`    | the profile surface — handle → `userId` and §5's `author`         |
+| `TweetResultByRestId` | the by-id surface — one fully hydrated tweet per `tweetIds` entry |
+| `GenericTimelineById` | unused                                                            |
+| `TrendHistory`        | trend metadata, no tweets — _and newly permitted_                 |
 
 Everything else is `404`: `SearchTimeline`, `ListSearchTimeline`, `ExplorePage`,
 `TrendRelevantUsers`, `Followers`, `Following`, `SimilarPosts`, `TweetDetail`, `UserMedia`
 and every narrow timeline variant. That permitted set is not arbitrary — it is exactly
 what a logged-out browser can render: **one profile, or one tweet.** Search is not on it,
-and neither is anything adjacent to it.
+and neither is anything adjacent to it. It also maps one-to-one onto the three required
+surfaces, which is the point: the doors that are open are exactly the ones the brief asks
+us to build on.
 
 `TrendHistory` is the interesting entry. It was gated on 2026-08-14 and permitted on
 2026-08-17. This surface is undocumented and it moves, which is the whole argument for
@@ -99,8 +124,8 @@ returns `404` — X verifies crawlers by reverse DNS rather than by UA string, a
 not attempt to defeat that. The full list, with status codes, is in
 [the appendix](docs/README-data-source.md#3-workarounds-ruled-out).
 
-**Keyword search as the brief describes it is not reachable from the guest surface.**
-Everything below follows from that.
+**Free-text search is not reachable from the guest surface.** The three required surfaces
+are. Everything below follows from that.
 
 ---
 
@@ -111,21 +136,26 @@ work out **which accounts** to read, then **read their tweets**. Only the first 
 leaves X, and it happens once.
 
 ```
-  searchTerms / hashtags ─┐
-                          ├─►  DiscoveryStrategy (port)  ──► handles
-  fromUsers ──────────────┘     ├─ DirectHandleDiscovery   — zero external calls
-                                └─ SeededTopicDiscovery    — one lookup per term, cold start only
-                                             │
-                                             ▼
-                       UserByScreenName  →  userId          ← 100% native X from here down
-                                             │
-                                             ▼
-                       UserTweets (cursor-paged, lazy)
-                                             │
+  tweetIds ───────────────────────────►  TweetResultByRestId  ─┐   one request per id
+                                                               │
+  searchTerms / hashtags ─┐                                    │
+                          ├─►  DiscoveryStrategy (port) ─┐     │
+  fromUsers ──────────────┘     ├─ DirectHandleDiscovery │     │
+                                └─ SeededTopicDiscovery  │     │
+                                                         ▼     │
+                                      UserByScreenName → userId│  ← 100% native X from here
+                                                         │     │
+                                                         ▼     │
+                                      UserTweets (cursor-paged)│
+                                                         │     │
+                                                         ▼     ▼
                     normalize → filter → dedupe → ResultSink → dataset
                                              ▲
                                     free-tier cap enforced here
 ```
+
+Both sources are lazy generators feeding one sink, which is what lets the cap stop the
+_fetching_ on either surface (§4.3).
 
 That split is what keeps the compromise contained. Discovery sits behind a port, so the
 one part of the problem X refuses to help with is isolated in a single swappable adapter —
@@ -189,7 +219,7 @@ No browser engine is installed and none is needed. The entire client is
 export type HttpClient = (req: HttpRequest) => Promise<HttpResponse>;
 ```
 
-Everything that leaves the process goes through that function. It is why 208 tests run
+Everything that leaves the process goes through that function. It is why 218 tests run
 offline in ~0.5 s with no module mocking anywhere: a test hands the constructor a canned
 responder and asserts. The port is deliberately status-code-transparent — a `404` or `429`
 is a _response_, not an exception — because the error taxonomy cannot classify what the
@@ -461,18 +491,31 @@ that is the right trade.**
 
 ## 5. Speed and cost, measured
 
-The brief's benchmark — a broad keyword, `sortBy: latest`, 100 items — exercises
-`SearchTimeline`, which is gated (§1). We keep the **protocol** and substitute the query,
-and we declare the substitution rather than bury it:
+The brief benchmarks time to 100 valid results from **a single high-volume author**,
+`sortBy: latest`, residential proxy, `maxResults: 100`, as a paid user. The timer starts at
+the first outbound request and stops at the 100th schema-conforming item; cold start is
+excluded, and the run must stay clean — any `429` invalidates the measurement.
 
-- the timer starts at the first outbound request of the measured phase;
-- it stops at the 100th schema-conforming item;
-- cold start is excluded — queryId resolution and the first guest token are once-per-run
-  costs, measured separately;
-- the run must stay clean: any `429` invalidates the measurement.
+That is the author surface, which is the path this Actor is fastest on. One property of it
+is worth stating up front, because it sets the ceiling: **a single author is a single
+cursor chain, and a cursor chain cannot be parallelised** — page 2 needs page 1's cursor.
+So the one-author benchmark measures our sequential paging, not our concurrency.
 
-**Headline, measured on the Apify platform under the brief's own conditions** — paid user,
-`sortBy: latest`, `maxResults: 100`, Apify residential proxy:
+Guests see two response modes, and the benchmark lands differently on each. Measured
+2026-08-17, macOS, **no proxy**, via `npx tsx src/tools/benchmark.ts native <handle>`:
+
+| Single author               | Items | Wall clock | Requests / pages | Selectivity |
+| --------------------------- | ----- | ---------- | ---------------- | ----------- |
+| `@elonmusk` (snapshot mode) | 99    | **0.31 s** | 2 / 1            | 100%        |
+| `@apify` (paginated mode)   | 100   | **12.8 s** | 14 / 12          | 46%         |
+
+Both are Grade A. The paginated row is the honest worst case: twelve sequential pages at
+~1.07 s each, on an account that is not especially high-volume — it had to fetch 216 tweets
+and discard 116 to reach 100. A genuinely high-volume author is denser, and often answers
+in snapshot mode entirely.
+
+**Measured on the Apify platform** — paid user, `sortBy: latest`, `maxResults: 100`, Apify
+residential proxy:
 
 |                                         |                                          |
 | --------------------------------------- | ---------------------------------------- |
@@ -488,10 +531,10 @@ and we declare the substitution rather than bury it:
 The run stayed clean, which the brief requires: no bans, nothing dropped to error. One
 guest token was enough because 11 requests sits far inside the ~50-per-15-minutes budget.
 
-Reproduce locally with `npx tsx src/tools/benchmark.ts native …` or `… seeded …`. Measured
-2026-08-17 on macOS with **no proxy** (direct residential connection):
+The two `searchTerms` paths cost very different amounts, and the gap is the architecture
+stating its own limitation. Measured 2026-08-17 on macOS with **no proxy**:
 
-|                       | **Native path**              | **Full seeded path**                       |
+|                       | **Author path**              | **Full seeded path**                       |
 | --------------------- | ---------------------------- | ------------------------------------------ |
 | Query                 | 10 handles, `sortBy: latest` | keyword `"web scraping"`, seeded discovery |
 | Items                 | **100**                      | 58 _(seed set exhausted before 100)_       |
@@ -509,7 +552,7 @@ Cost per 1,000 results at Apify list prices (residential proxy $12.50/GB, comput
 $0.40). The constants live in `src/actor/summary.ts` so you can correct them for your own
 plan:
 
-|           | Native               | Seeded              |
+|           | Author path          | Seeded              |
 | --------- | -------------------- | ------------------- |
 | Proxy     | 0.032 GB → **$0.40** | 0.59 GB → **$7.39** |
 | Compute   | 0.008 CU → $0.003    | 0.26 CU → $0.10     |
@@ -518,15 +561,16 @@ plan:
 **One caveat on those figures: the extrapolation is linear and part of the cost is not.**
 Cold start — the ~1.8 MB queryId bundle plus the first guest token — is paid once
 regardless of run size, so a small run spreads it thin and overstates per-1k cost. The same
-native path reports ≈$2.19/1k on a 10-item free run and ≈$0.41/1k on a 100-item run. The
+author path reports ≈$2.19/1k on a 10-item free run and ≈$0.41/1k on a 100-item run. The
 number only means something for runs large enough to amortise cold start, which is exactly
 why `bytesTransferred` is published beside it.
 
 ### Read the gap, not the headline
 
-The 32× difference between those two paths is the architecture stating its own limitation
-out loud. Native extraction from known handles is fast and cheap. Keyword _matching_ is
-expensive, because recall is seed-bounded and selectivity is low.
+The 32× difference between those two paths is the cost of the stretch surface. Extraction
+from known handles — the required path — is fast and cheap. Keyword _matching_ is expensive,
+because recall is seed-bounded and selectivity is low. That gap is the honest reason search
+is scoped as a bonus here rather than sold as an equal.
 
 An earlier run of the same keyword against weaker seeds measured 0.09% selectivity, 518
 requests, 91 MB, and an implied $128/1k. That measurement is why the Actor has a **request
@@ -636,22 +680,23 @@ ISO-8601 UTC, counts are integers, and IDs are strings, never JS numbers (they e
 The brief leaves a number of behaviours undefined. Each one is decided, tested, and written
 down here, so documented behaviour can be diffed against actual behaviour:
 
-| Ruling                        | Decision                                                   | Why                                                                                                                                                                                                        |
-| ----------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mediaType: images`           | matches if **≥1 photo**, other content allowed             | "tweets with images" is the natural reading; "photos only" surprises                                                                                                                                       |
-| `animated_gif`                | grouped under `video`                                      | X stores GIFs as MP4, and the enum has no `gif` value                                                                                                                                                      |
-| `mediaType: links`            | ≥1 entry in `entities.urls`                                | —                                                                                                                                                                                                          |
-| `mediaType: text_only`        | **no media AND no links**                                  | `links` is its own enum value, so allowing links here makes the enum incoherent                                                                                                                            |
-| `onlyVerified`                | `is_blue_verified \|\| verification.verified`              | X conflates paid Blue with legacy verification and the schema has one boolean. Never key off `verified_type`: `@grok` returns `verified_type: "Business"` with `verified: false` while being blue-verified |
-| `includeReplies` default      | `false`                                                    | the brief specifies the default only for retweets; we default both and say so                                                                                                                              |
-| `sortBy: latest`              | descending Snowflake ID                                    | IDs are monotonic, so ID order **is** chronological order                                                                                                                                                  |
-| `sortBy: top`                 | descending `likes + retweets` **within the collected set** | X's relevance ranking is not reproducible from the guest surface — approximation, declared                                                                                                                 |
-| `since` / `until`             | **inclusive**, applied to the Snowflake                    | a bare date in `until` covers the whole day to `23:59:59.999`; treating it as midnight silently drops a day                                                                                                |
-| `toUsers`                     | reply **that mentions** the handle                         | X puts the parent author in `user_mentions` on every reply; there is no mention index on the guest surface                                                                                                 |
-| Multiple values in one filter | OR                                                         | `hashtags: ["a","b"]` means a **or** b                                                                                                                                                                     |
-| Multiple filters              | AND                                                        | and an unspecified filter is **no constraint**, never a narrowing one                                                                                                                                      |
-| Missing metric vs `minLikes`  | counts as 0                                                | absent data is not evidence of engagement                                                                                                                                                                  |
-| Retweet metrics               | the **original's**                                         | the wrapper's counters are structurally zero (§3)                                                                                                                                                          |
+| Ruling                         | Decision                                                   | Why                                                                                                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mediaType: images`            | matches if **≥1 photo**, other content allowed             | "tweets with images" is the natural reading; "photos only" surprises                                                                                                                                       |
+| `animated_gif`                 | grouped under `video`                                      | X stores GIFs as MP4, and the enum has no `gif` value                                                                                                                                                      |
+| `mediaType: links`             | ≥1 entry in `entities.urls`                                | —                                                                                                                                                                                                          |
+| `mediaType: text_only`         | **no media AND no links**                                  | `links` is its own enum value, so allowing links here makes the enum incoherent                                                                                                                            |
+| `onlyVerified`                 | `is_blue_verified \|\| verification.verified`              | X conflates paid Blue with legacy verification and the schema has one boolean. Never key off `verified_type`: `@grok` returns `verified_type: "Business"` with `verified: false` while being blue-verified |
+| `includeReplies` default       | `false`                                                    | the brief specifies the default only for retweets; we default both and say so                                                                                                                              |
+| `sortBy: latest`               | descending Snowflake ID                                    | IDs are monotonic, so ID order **is** chronological order                                                                                                                                                  |
+| `sortBy: top`                  | descending `likes + retweets` **within the collected set** | X's relevance ranking is not reproducible from the guest surface — approximation, declared                                                                                                                 |
+| `since` / `until`              | **inclusive**, applied to the Snowflake                    | a bare date in `until` covers the whole day to `23:59:59.999`; treating it as midnight silently drops a day                                                                                                |
+| `tweetIds` vs `includeReplies` | an explicit id opts into replies and retweets              | naming a tweet by id _is_ the selection; those defaults exist to shape a timeline sweep, and applying them here would silently drop the exact tweet asked for                                              |
+| `hashtags`                     | post-filter, never a target                                | brief §4: it constrains the timelines a target produced, so a hashtags-only run has nothing to fetch from and is rejected                                                                                  |
+| Multiple values in one filter  | OR                                                         | `hashtags: ["a","b"]` means a **or** b                                                                                                                                                                     |
+| Multiple filters               | AND                                                        | and an unspecified filter is **no constraint**, never a narrowing one                                                                                                                                      |
+| Missing metric vs `minLikes`   | counts as 0                                                | absent data is not evidence of engagement                                                                                                                                                                  |
+| Retweet metrics                | the **original's**                                         | the wrapper's counters are structurally zero (§3)                                                                                                                                                          |
 
 Results are buffered and written in one batch at the end, because `sortBy` is a property of
 the whole result set and cannot be honoured by an append-only stream. The buffer is bounded
@@ -673,14 +718,26 @@ visible immediately because it fails closed without an entitlements store:
 
 ```bash
 git clone https://github.com/ArthurVianna96/x-tweet-scraper && cd x-tweet-scraper
-npm install && npm test              # 208 tests, offline, ~0.5s
+npm install && npm test              # 218 tests, offline, ~0.5s
 mkdir -p storage/key_value_stores/default
 echo '{"fromUsers":["apify"],"maxResults":1000}' \
   > storage/key_value_stores/default/INPUT.json
 npm run start:dev
 ```
 
-That run asks for 1000 and returns **10**, logging `reason: "entitlement_unavailable"` —
+To exercise the by-id surface instead, swap the input for a list of ids — no accounts
+needed, one request each:
+
+```bash
+echo '{"tweetIds":["2089366645768643034","1"],"maxResults":1000}' \
+  > storage/key_value_stores/default/INPUT.json
+npm run start:dev
+```
+
+The summary reports `hydratedById: { requested: 2, hydrated: 1, missing: 1 }` — the second
+id does not exist, and is counted rather than fatal.
+
+That first run asks for 1000 and returns **10**, logging `reason: "entitlement_unavailable"` —
 the fail-closed path. To see the _verified_-free path (`reason: "free_tier"`) and the paid
 path you need an entitlements store: either run the deployed Actor above, or stand up your
 own ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)).
@@ -767,7 +824,7 @@ lookup is more likely to be challenged from a datacenter IP.
 
 |                                                               |                                          |
 | ------------------------------------------------------------- | ---------------------------------------- |
-| `npm test`                                                    | 208 tests, offline, no platform          |
+| `npm test`                                                    | 218 tests, offline, no platform          |
 | `npm run typecheck` / `npm run lint`                          | strict TS, ESLint                        |
 | `npm run probe`                                               | re-derive the endpoint capability matrix |
 | `npx tsx src/tools/capture-fixtures.ts <handles…>`            | refresh committed fixtures from live X   |
@@ -809,14 +866,14 @@ three things:
 Stated plainly, because a limitation you find in the README is cheaper than one you find in
 production.
 
-- **Keyword and hashtag recall is seed-bounded.** You get matching tweets from accounts
-  that discuss the topic, not every tweet on X. This is a hard ceiling of the guest
+- **`searchTerms` recall is seed-bounded.** This is the stretch surface (§2a), and the one
+  place we cannot match what a logged-in client could do. You get matching tweets from
+  accounts that discuss the topic, not every tweet on X — a hard ceiling of the guest
   surface, not an implementation shortcut. The run summary reports how many accounts were
-  seeded and crawled, so callers can judge coverage for themselves.
-- **`sortBy: top` is an approximation** — engagement ranking within the collected set.
-- **The benchmark query is substituted**, with the methodology declared (§5).
-- **`toUsers` / `mentioning` are client-side filters** over the crawled set, not a mention
-  index. No such index is reachable.
+  seeded and crawled, so callers can judge coverage for themselves. The three required
+  surfaces have no such ceiling.
+- **`sortBy: top` is an approximation** — engagement ranking within the collected set. X's
+  own relevance ranking is not reproducible from the guest surface.
 - **Fixtures cannot detect X changing its response shape.** The suite is offline and
   deterministic by choice, and the price of that choice is that these tests stay green
   while production breaks. In a production system you close this with a scheduled,
@@ -829,35 +886,42 @@ production.
   targets — hundreds to low thousands of results — that is the right trade. A
   hundred-thousand-result run would want a spill-to-disk merge sort instead.
 
-Delivered from the bonus list: global deduplication and a seen-set (required anyway, given
-nested retweets and snowball overlap), protected / suspended / deleted account handling (one
-dead account never fails a run), and cost-per-1k reporting.
+Delivered from the bonus list (§11): **`searchTerms` via a justified public HTTP source**
+rather than left unsupported; incremental/resumable scraping keyed on stored cursors (§4.5);
+global deduplication and a seen-set across overlapping targets — required anyway, given
+nested retweets, snowball overlap and ids that also appear in a crawled timeline; graceful
+handling of protected / suspended / deleted accounts and dead tweet ids, neither of which
+fails a run; and cost-per-1k reporting. Not delivered: the finish webhook.
 
 ---
 
 ## 10. Decisions and trade-offs
 
-1. **Separate discovery from extraction, and put discovery behind a port.** The one part of
+1. **Build on the doors that are open, and say which they are.** The three required
+   surfaces — author, id, profile — are guest-reachable and implemented natively. Search is
+   not, and is scoped as a stretch served a different way rather than half-worked into the
+   required paths.
+2. **Separate discovery from extraction, and put discovery behind a port.** The one part of
    the problem X does not permit is isolated in a single swappable adapter, and the other
    95% of the system is native and unaffected by that choice.
-2. **Ask a web index about profiles, not posts.** Driven by measurement — 36-day-old
+3. **Ask a web index about profiles, not posts.** Driven by measurement — 36-day-old
    freshest indexed tweet, zero hashtag coverage — not by preference.
-3. **Refuse to solve the hard part by buying it.** A paid search API would have made keyword
+4. **Refuse to solve the hard part by buying it.** A paid search API would have made keyword
    search work immediately, and made the extraction someone else's work.
-4. **Resolve `queryId`s at runtime.** Three bundle hashes in three days; hardcoding
+5. **Resolve `queryId`s at runtime.** Three bundle hashes in three days; hardcoding
    guarantees a silent failure on some future Tuesday.
-5. **Extract by path; never recurse.** Recursion double-counts nested originals — 32 items
+6. **Extract by path; never recurse.** Recursion double-counts nested originals — 32 items
    from a 20-entry page.
-6. **Distrust X's own stop signal.** `TimelineTerminateTimeline` costs 79% of recall on a
+7. **Distrust X's own stop signal.** `TimelineTerminateTimeline` costs 79% of recall on a
    paginated account if believed.
-7. **Pin the session triple; rotate on `429`; retire before the limit.** Coherence is what
+8. **Pin the session triple; rotate on `429`; retire before the limit.** Coherence is what
    abuse detection looks for, and proactive retirement is worth more than any backoff.
-8. **Enforce the cap at a single lazy chokepoint.** It stops fetching, not just pushing —
+9. **Enforce the cap at a single lazy chokepoint.** It stops fetching, not just pushing —
    and the seam is constructor injection, so the required test needs no network.
-9. **Derive identity from the token, not the environment; fail closed on every path.**
-10. **Floor the resume counter on `dataset.itemCount`.** Persisted state is fine for cursors
+10. **Derive identity from the token, not the environment; fail closed on every path.**
+11. **Floor the resume counter on `dataset.itemCount`.** Persisted state is fine for cursors
     and unacceptable for the counter that enforces the cap.
-11. **Budget requests explicitly.** Low selectivity is normal, and without a budget the cost
+12. **Budget requests explicitly.** Low selectivity is normal, and without a budget the cost
     of a run is bounded only by how many accounts exist.
-12. **Publish the diagnostics that would let a reviewer contradict us.** Selectivity, tokens,
+13. **Publish the diagnostics that would let a reviewer contradict us.** Selectivity, tokens,
     bytes, `429` count and cost are all in `OUTPUT`.
