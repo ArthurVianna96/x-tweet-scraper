@@ -606,6 +606,34 @@ apify push
 
 (Both must exist locally before the first push, or it will fail on the missing reference.)
 
+### The store must be public-read — and testing it yourself will not tell you
+
+This is the one deployment step that fails silently. On Apify the setting is
+`generalAccess` (not `isPublic`):
+
+```bash
+curl -X PUT "https://api.apify.com/v2/key-value-stores/<storeId>?token=<yourToken>" \
+  -H 'content-type: application/json' \
+  -d '{"generalAccess":"ANYONE_WITH_ID_CAN_READ"}'
+```
+
+Verify it the way a customer's run sees it — **with no token at all**:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  "https://api.apify.com/v2/key-value-stores/<storeId>/records/__nope__"
+# 404 → public-read, good.   403 → still private.
+```
+
+Why the check matters: inside a run, `APIFY_TOKEN` belongs to the **runner**, so a private
+store is unreachable from every customer's run and they all fall back to
+`entitlement_unavailable` — capped at 10, paying or not. Your _own_ test runs would look
+perfect throughout, because your token can read your own private store. The bug is
+invisible from the inside and total from the outside.
+
+Making the store world-readable costs nothing: keys are HMAC'd and values are
+`{ paid, updatedAt }`, so the public key listing is a page of hashes that names nobody.
+
 ### Granting paid access
 
 Records are keyed by `HMAC-SHA256(userId, ENTITLEMENTS_HMAC_KEY)`, so the store leaks no
