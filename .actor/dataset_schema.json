@@ -1,0 +1,39 @@
+{
+  "actorSpecification": 1,
+  "fields": {},
+  "views": {
+    "overview": {
+      "title": "Tweets",
+      "transformation": {
+        "fields": [
+          "createdAt",
+          "author",
+          "text",
+          "metrics",
+          "url",
+          "lang",
+          "isReply",
+          "isRetweet",
+          "isQuote",
+          "entities",
+          "id",
+          "conversationId",
+          "inReplyToId",
+          "quotedTweetId",
+          "source",
+          "scrapedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "createdAt": { "label": "Posted" },
+          "author": { "label": "Author" },
+          "text": { "label": "Text" },
+          "metrics": { "label": "Metrics" },
+          "url": { "label": "URL" }
+        }
+      }
+    }
+  }
+}

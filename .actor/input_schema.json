@@ -1,0 +1,189 @@
+{
+  "title": "X Tweet Scraper input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "searchTerms": {
+      "title": "Search terms",
+      "type": "array",
+      "description": "Keywords to match against tweet text (case-insensitive). Multiple terms are OR'd. Because X's search endpoint is closed to logged-out clients, keywords also seed account discovery — see the README on recall.",
+      "editor": "stringList",
+      "prefill": ["web scraping"]
+    },
+    "fromUsers": {
+      "title": "From these accounts",
+      "type": "array",
+      "description": "Handles without '@'. When supplied, the Actor makes no third-party call at all: these accounts are crawled directly on X.",
+      "editor": "stringList"
+    },
+    "toUsers": {
+      "title": "Replies directed at",
+      "type": "array",
+      "description": "Client-side filter: keeps replies that mention these handles. There is no mention index available to logged-out clients, so this filters the crawled set rather than searching X.",
+      "editor": "stringList"
+    },
+    "mentioning": {
+      "title": "Mentioning",
+      "type": "array",
+      "description": "Client-side filter: keeps tweets mentioning these handles.",
+      "editor": "stringList"
+    },
+    "hashtags": {
+      "title": "Hashtags",
+      "type": "array",
+      "description": "Without '#'. Matched case-insensitively against the tweet's hashtag entities.",
+      "editor": "stringList"
+    },
+    "since": {
+      "title": "Since (inclusive)",
+      "type": "string",
+      "description": "ISO date or datetime, e.g. 2026-08-01. Inclusive. Applied to the tweet's Snowflake ID, so it is exact.",
+      "editor": "datepicker"
+    },
+    "until": {
+      "title": "Until (inclusive)",
+      "type": "string",
+      "description": "ISO date or datetime. Inclusive — a bare date covers the whole day up to 23:59:59.999 UTC.",
+      "editor": "datepicker"
+    },
+    "language": {
+      "title": "Language",
+      "type": "string",
+      "description": "ISO-639-1 code, matched against X's own language detection (e.g. en, pt, es).",
+      "editor": "textfield"
+    },
+    "minLikes": {
+      "title": "Minimum likes",
+      "type": "integer",
+      "description": "Inclusive floor.",
+      "editor": "number",
+      "minimum": 0
+    },
+    "minRetweets": {
+      "title": "Minimum retweets",
+      "type": "integer",
+      "description": "Inclusive floor.",
+      "editor": "number",
+      "minimum": 0
+    },
+    "minReplies": {
+      "title": "Minimum replies",
+      "type": "integer",
+      "description": "Inclusive floor.",
+      "editor": "number",
+      "minimum": 0
+    },
+    "onlyVerified": {
+      "title": "Only verified authors",
+      "type": "boolean",
+      "description": "X conflates paid Blue with legacy verification, so this matches either.",
+      "editor": "checkbox",
+      "default": false
+    },
+    "mediaType": {
+      "title": "Media type",
+      "type": "string",
+      "description": "images = has at least one photo; video = has video or GIF (X stores GIFs as MP4); links = has at least one URL; text_only = no media and no links.",
+      "editor": "select",
+      "enum": ["images", "video", "links", "text_only"],
+      "enumTitles": ["Images", "Video / GIF", "Links", "Text only"]
+    },
+    "includeReplies": {
+      "title": "Include replies",
+      "type": "boolean",
+      "description": "Excluded by default.",
+      "editor": "checkbox",
+      "default": false
+    },
+    "includeRetweets": {
+      "title": "Include retweets",
+      "type": "boolean",
+      "description": "Excluded by default. When included, a retweet carries the original's full text and metrics — the retweet wrapper's counters are structurally zero.",
+      "editor": "checkbox",
+      "default": false
+    },
+    "sortBy": {
+      "title": "Sort order",
+      "type": "string",
+      "description": "latest = newest first, exact (tweet IDs are monotonic). top = ranked by likes + retweets within the collected set; X's own relevance ranking is not reproducible from the logged-out surface.",
+      "editor": "select",
+      "enum": ["latest", "top"],
+      "enumTitles": ["Latest", "Top (approximate)"],
+      "default": "latest"
+    },
+    "maxResults": {
+      "title": "Maximum results",
+      "type": "integer",
+      "description": "How many tweets to return. Free runs are capped at 10 results regardless of this value; the cap is enforced server-side. Paid runs receive the full amount.",
+      "editor": "number",
+      "minimum": 1,
+      "default": 100
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration",
+      "type": "object",
+      "description": "Residential proxies are recommended: X rate-limits per guest token and per IP, and the Actor pins one token to one IP for the life of a session.",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true
+      }
+    },
+    "maxConcurrency": {
+      "title": "Concurrent accounts",
+      "type": "integer",
+      "description": "Advanced. A single timeline's cursor chain is sequential, so parallelism happens across accounts.",
+      "editor": "number",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 4,
+      "sectionCaption": "Advanced"
+    },
+    "maxAccounts": {
+      "title": "Maximum accounts to crawl",
+      "type": "integer",
+      "editor": "number",
+      "minimum": 1,
+      "default": 50,
+      "sectionCaption": "Advanced"
+    },
+    "maxPagesPerAccount": {
+      "title": "Maximum pages per account",
+      "type": "integer",
+      "description": "Advanced. One page is ~20 tweets on a paginated timeline.",
+      "editor": "number",
+      "minimum": 1,
+      "sectionCaption": "Advanced",
+      "default": 25
+    },
+    "expansionDepth": {
+      "title": "Seed expansion depth",
+      "type": "integer",
+      "description": "Advanced. 0 disables snowball expansion. Mentions and retweeted authors are harvested from pages already fetched, so expansion costs no extra requests — but precision decays with depth.",
+      "editor": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 1,
+      "sectionCaption": "Advanced"
+    },
+    "maxSessions": {
+      "title": "Guest token pool size",
+      "type": "integer",
+      "description": "Advanced. Each token is worth ~50 requests per 15 minutes. Tokens are free and instant to mint.",
+      "editor": "number",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 5,
+      "sectionCaption": "Advanced"
+    },
+    "maxRequests": {
+      "title": "Request budget",
+      "type": "integer",
+      "description": "Advanced. Hard ceiling on requests to X for the whole run — the cost control. Low-selectivity keyword filters can otherwise fetch thousands of tweets for a handful of matches.",
+      "editor": "number",
+      "minimum": 1,
+      "default": 500,
+      "sectionCaption": "Advanced"
+    }
+  },
+  "required": []
+}

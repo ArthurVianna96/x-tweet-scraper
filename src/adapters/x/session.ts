@@ -35,6 +35,9 @@ export interface XSession {
  */
 export const RETIRE_AT_REMAINING = 5;
 
+/** How many requests a triple serves before the pool adds another. See `acquire`. */
+export const REQUESTS_BEFORE_GROWING = 10;
+
 const headerGenerator = new HeaderGenerator({
   browsers: [{ name: 'chrome', minVersion: 120 }],
   devices: ['desktop'],
@@ -103,6 +106,7 @@ export class SessionPool {
   private readonly sessions: XSession[] = [];
   private created = 0;
   private cursor = 0;
+  private creating: Promise<XSession> | null = null;
 
   constructor(private readonly opts: SessionPoolOptions) {}
 
@@ -118,16 +122,48 @@ export class SessionPool {
   async acquire(): Promise<XSession> {
     this.evictRetired();
 
-    // Round-robin across live triples so no single token burns its budget first.
-    if (this.sessions.length >= this.opts.maxSessions) {
-      const session = this.sessions[this.cursor % this.sessions.length];
-      this.cursor++;
-      if (session !== undefined) return session;
+    const usable = this.sessions.filter(
+      (session) => session.remaining === null || session.remaining > RETIRE_AT_REMAINING,
+    );
+
+    /**
+     * The pool grows with demand, not with request count.
+     *
+     * Minting a fresh triple per request would be the opposite of the design: it hands X
+     * a new token from a new IP on every call, which is the incoherence §5.1 exists to
+     * avoid, and it wastes the 50-request budget each token comes with. So a triple
+     * serves at least `REQUESTS_BEFORE_GROWING` requests before another is added, up to
+     * `maxSessions`.
+     */
+    const shouldGrow =
+      usable.length === 0 ||
+      (this.sessions.length < this.opts.maxSessions &&
+        this.requestsAcrossPool() >= this.sessions.length * REQUESTS_BEFORE_GROWING);
+
+    if (shouldGrow) {
+      // Collapse concurrent cold starts. Without this, N account chains starting at once
+      // each see an empty pool and mint their own token — the exact per-request-token
+      // behaviour the growth policy exists to prevent.
+      this.creating ??= this.create().finally(() => {
+        this.creating = null;
+      });
+      const session = await this.creating;
+      if (!this.sessions.includes(session)) this.sessions.push(session);
+      return session;
     }
 
-    const session = await this.create();
-    this.sessions.push(session);
-    return session;
+    // Round-robin across live triples so no single token burns its budget first.
+    const session = usable[this.cursor % usable.length];
+    this.cursor++;
+    if (session !== undefined) return session;
+
+    const fresh = await this.create();
+    this.sessions.push(fresh);
+    return fresh;
+  }
+
+  private requestsAcrossPool(): number {
+    return this.sessions.reduce((total, session) => total + session.requestsMade, 0);
   }
 
   /**

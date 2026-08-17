@@ -104,28 +104,33 @@ export async function* streamUserTweets(
       cursor,
     });
 
-    let fresh = 0;
-    for (const tweet of result.results) {
+    const fresh = result.results.filter((tweet) => {
       const id = asString(path(tweet, 'rest_id'));
-      if (id !== null) {
-        if (seenOnThisAccount.has(id)) continue;
-        seenOnThisAccount.add(id);
-      }
-      fresh++;
-      yield tweet;
-    }
+      return id === null || !seenOnThisAccount.has(id);
+    });
 
+    /**
+     * Reported *before* yielding, because a page that was fetched has been paid for even
+     * if the consumer stops halfway through it. Reporting after the loop undercounts
+     * every run that ends at the free-tier cap — which is every free run.
+     */
     onPage?.({
       cursor: result.nextCursor,
       count: result.results.length,
-      fresh,
+      fresh: fresh.length,
       terminated: result.terminated,
     });
+
+    for (const tweet of fresh) {
+      const id = asString(path(tweet, 'rest_id'));
+      if (id !== null) seenOnThisAccount.add(id);
+      yield tweet;
+    }
 
     if (result.nextCursor === null || result.nextCursor === cursor) return;
     if (result.results.length === 0) return;
     // A full page we have already seen means the cursor is cycling, not advancing.
-    if (fresh === 0) return;
+    if (fresh.length === 0) return;
 
     cursor = result.nextCursor;
   }

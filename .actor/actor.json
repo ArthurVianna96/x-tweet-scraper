@@ -1,0 +1,13 @@
+{
+  "actorSpecification": 1,
+  "name": "x-tweet-scraper",
+  "title": "X (Twitter) Tweet Scraper — browserless",
+  "description": "Scrapes public tweets from X without a browser engine, using guest-token GraphQL over plain HTTP. Free runs return up to 10 results.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  }
+}

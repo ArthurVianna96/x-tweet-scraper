@@ -23,6 +23,8 @@ export interface XClientEvent {
 
 export interface XClientStats {
   requests: number;
+  /** Response bytes over the wire — the input to the proxy-cost estimate (SPEC.md §7). */
+  bytes: number;
   errors: Record<'429' | '403' | '404' | '5xx' | 'timeout' | 'other', number>;
 }
 
@@ -47,6 +49,7 @@ export interface XClientOptions {
 export class XClient {
   readonly stats: XClientStats = {
     requests: 0,
+    bytes: 0,
     errors: { '429': 0, '403': 0, '404': 0, '5xx': 0, timeout: 0, other: 0 },
   };
 
@@ -94,6 +97,7 @@ export class XClient {
       }
 
       this.opts.pool.observe(session, response);
+      this.stats.bytes += response.body.length;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (attempt > 0) {
