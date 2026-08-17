@@ -1,0 +1,12 @@
+node_modules/
+dist/
+storage/
+apify_storage/
+crawlee_storage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+.vitest/
