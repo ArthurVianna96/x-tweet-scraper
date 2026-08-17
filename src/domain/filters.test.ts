@@ -107,23 +107,9 @@ describe('people filters', () => {
     expect(matchesFilters(tweet(), { fromUsers: ['someoneelse'] })).toBe(false);
   });
 
-  it('toUsers requires a reply that mentions the handle', () => {
-    expect(matchesFilters(reply, { toUsers: ['apify'], includeReplies: true })).toBe(true);
-    expect(matchesFilters(reply, { toUsers: ['nobody'], includeReplies: true })).toBe(false);
-
-    // A plain mention in a non-reply is not "directed at" anyone.
-    const mentionOnly = tweet({
-      entities: { hashtags: [], mentions: ['apify'], urls: [], media: [] },
-    });
-    expect(matchesFilters(mentionOnly, { toUsers: ['apify'] })).toBe(false);
-  });
-
-  it('mentioning matches any mention, reply or not', () => {
-    const mentionOnly = tweet({
-      entities: { hashtags: [], mentions: ['apify'], urls: [], media: [] },
-    });
-    expect(matchesFilters(mentionOnly, { mentioning: ['@apify'] })).toBe(true);
-    expect(matchesFilters(tweet(), { mentioning: ['apify'] })).toBe(false);
+  it('an unset fromUsers constrains nothing', () => {
+    expect(matchesFilters(reply, { includeReplies: true })).toBe(true);
+    expect(matchesFilters(tweet(), {})).toBe(true);
   });
 });
 
@@ -230,7 +216,6 @@ describe('filters combine with AND', () => {
     const criteria: FilterCriteria = {
       searchTerms: ['scraping'],
       hashtags: ['data'],
-      mentioning: ['apify'],
       minLikes: 50,
       language: 'en',
     };

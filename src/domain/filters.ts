@@ -19,8 +19,6 @@ export type SortOrder = 'latest' | 'top';
 export interface FilterCriteria {
   readonly searchTerms?: readonly string[];
   readonly fromUsers?: readonly string[];
-  readonly toUsers?: readonly string[];
-  readonly mentioning?: readonly string[];
   readonly hashtags?: readonly string[];
   readonly since?: string;
   readonly until?: string;
@@ -96,32 +94,15 @@ function matchesText(tweet: Tweet, criteria: FilterCriteria): boolean {
   return true;
 }
 
+/**
+ * `fromUsers` is a target *and* a filter: snowball expansion reaches accounts the caller
+ * did not name, and their tweets are not what was asked for.
+ */
 function matchesPeople(tweet: Tweet, criteria: FilterCriteria): boolean {
-  const mentions = new Set(tweet.entities.mentions.map(lower));
+  if (!isNonEmpty(criteria.fromUsers)) return true;
+
   const author = tweet.author.username === null ? null : lower(tweet.author.username);
-
-  if (isNonEmpty(criteria.fromUsers)) {
-    if (author === null || !criteria.fromUsers.map(handle).includes(author)) return false;
-  }
-
-  /**
-   * `toUsers` — "replies directed at these accounts".
-   *
-   * X puts the parent author in `entities.user_mentions` on every reply, so a reply plus
-   * a mention is the reachable expression of "directed at". There is no mention *index*
-   * on the guest surface, so this is a filter over the seed set rather than a search —
-   * stated plainly in the README as a scope limit (SPEC.md §9).
-   */
-  if (isNonEmpty(criteria.toUsers)) {
-    if (!tweet.isReply) return false;
-    if (!criteria.toUsers.map(handle).some((h) => mentions.has(h))) return false;
-  }
-
-  if (isNonEmpty(criteria.mentioning)) {
-    if (!criteria.mentioning.map(handle).some((h) => mentions.has(h))) return false;
-  }
-
-  return true;
+  return author !== null && criteria.fromUsers.map(handle).includes(author);
 }
 
 function matchesEngagement(tweet: Tweet, criteria: FilterCriteria): boolean {

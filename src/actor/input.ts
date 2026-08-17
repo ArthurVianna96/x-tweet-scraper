@@ -28,10 +28,15 @@ export const ProxyConfigurationSchema = z.object({
 
 export const ActorInputSchema = z
   .object({
-    searchTerms: z.array(z.string().trim().min(1)).optional(),
+    /**
+     * The three targets (brief §2a). `fromUsers` and `tweetIds` map to guest-reachable
+     * operations; `searchTerms` is the stretch surface and is served through discovery
+     * (README §2), not through X's own gated search.
+     */
     fromUsers: handleList.optional(),
-    toUsers: handleList.optional(),
-    mentioning: handleList.optional(),
+    tweetIds: z.array(z.string().trim().regex(/^\d+$/, 'must be a numeric tweet id')).optional(),
+    searchTerms: z.array(z.string().trim().min(1)).optional(),
+
     hashtags: z
       .array(z.string().trim().min(1))
       .transform((values) => values.map((value) => value.replace(/^#/, '')))
@@ -77,12 +82,16 @@ export const ActorInputSchema = z
     expansionDepth: z.number().int().min(0).max(2).default(1),
     maxSessions: z.number().int().positive().max(50).default(5),
   })
+  /**
+   * Brief §4: a run needs a *target*. `hashtags` is not one — it is a post-filter over
+   * the timelines a target produced, so a hashtags-only run has nothing to fetch from.
+   */
   .refine(
     (input) =>
-      (input.searchTerms?.length ?? 0) > 0 ||
       (input.fromUsers?.length ?? 0) > 0 ||
-      (input.hashtags?.length ?? 0) > 0,
-    { message: 'At least one of `searchTerms`, `fromUsers` or `hashtags` is required' },
+      (input.tweetIds?.length ?? 0) > 0 ||
+      (input.searchTerms?.length ?? 0) > 0,
+    { message: 'At least one of `fromUsers`, `tweetIds` or `searchTerms` is required' },
   )
   .refine(
     (input) =>
@@ -109,8 +118,6 @@ export function toFilterCriteria(input: ActorInput): FilterCriteria {
   return {
     ...(input.searchTerms === undefined ? {} : { searchTerms: input.searchTerms }),
     ...(input.fromUsers === undefined ? {} : { fromUsers: input.fromUsers }),
-    ...(input.toUsers === undefined ? {} : { toUsers: input.toUsers }),
-    ...(input.mentioning === undefined ? {} : { mentioning: input.mentioning }),
     ...(input.hashtags === undefined ? {} : { hashtags: input.hashtags }),
     ...(input.since === undefined ? {} : { since: input.since }),
     ...(input.until === undefined ? {} : { until: input.until }),

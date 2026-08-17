@@ -10,6 +10,7 @@ import { DirectHandleDiscovery } from '../adapters/discovery/direct.js';
 import { SeededTopicDiscovery } from '../adapters/discovery/seeded-topic.js';
 import type { DiscoveryStrategy } from '../adapters/discovery/types.js';
 import { Crawler } from '../adapters/x/crawl.js';
+import { TweetHydrator } from '../adapters/x/hydrate.js';
 import { XClient } from '../adapters/x/graphql.js';
 import { QueryIdResolver } from '../adapters/x/query-ids.js';
 import { SessionPool, generateBrowserHeaders } from '../adapters/x/session.js';
@@ -103,15 +104,20 @@ try {
   });
 
   // --- Discovery: the only non-X call, and only when we have no handles ----------
+  const terms = topicTerms(input);
   const discovery: DiscoveryStrategy =
     (input.fromUsers?.length ?? 0) > 0
       ? new DirectHandleDiscovery(input.fromUsers ?? [])
-      : new SeededTopicDiscovery({
-          http,
-          terms: topicTerms(input),
-          proxyUrl: await proxyConfiguration?.newUrl('discovery'),
-          onEvent: (event) => log.info('seed lookup', event),
-        });
+      : terms.length > 0
+        ? new SeededTopicDiscovery({
+            http,
+            terms,
+            proxyUrl: await proxyConfiguration?.newUrl('discovery'),
+            onEvent: (event) => log.info('seed lookup', event),
+          })
+        : // A `tweetIds`-only run has nothing to discover, and must not pay a
+          // search-engine lookup to find that out.
+          new DirectHandleDiscovery([]);
 
   const crawler = new Crawler({
     client: xClient,
@@ -147,7 +153,36 @@ try {
     },
   });
 
+  const hydrator = new TweetHydrator({
+    client: xClient,
+    tweetIds: input.tweetIds ?? [],
+    maxRequests: requestBudget,
+    onEvent: (event) => log.debug('hydrate', event),
+  });
+
+  /**
+   * The §2a surfaces in one pass: ids first — they are exact and cost one request each —
+   * then the timelines. `yield*` keeps both lazy, so the cap still stops the fetching
+   * rather than truncating the output (SPEC.md §4.3).
+   */
+  async function* surfaces(): AsyncGenerator<Tweet> {
+    yield* hydrator.tweets();
+    yield* crawler.tweets();
+  }
+
   const criteria = toFilterCriteria(input);
+
+  /**
+   * Naming a tweet by id *is* the selection, so an explicit id opts into replies and
+   * retweets. `includeReplies`/`includeRetweets` exist to shape what a timeline sweep
+   * returns; applying their `false` defaults to `tweetIds` would silently drop the exact
+   * tweet the caller asked for. Every other filter still applies, and AND semantics hold.
+   */
+  const requestedIds = new Set(input.tweetIds ?? []);
+  const byIdCriteria = { ...criteria, includeReplies: true, includeRetweets: true };
+  const matches = (tweet: Tweet): boolean =>
+    matchesFilters(tweet, requestedIds.has(tweet.id) ? byIdCriteria : criteria);
+
   const snapshot = (): RunState => ({
     pushed: sink.count,
     cursors: crawler.stats.cursors,
@@ -161,10 +196,10 @@ try {
 
   let collected;
   try {
-    collected = await collect(crawler.tweets(), {
+    collected = await collect(surfaces(), {
       sink,
       seen,
-      matches: (tweet) => matchesFilters(tweet, criteria),
+      matches,
       keyOf: (tweet) => tweet.id,
     });
   } finally {
@@ -182,6 +217,7 @@ try {
     entitlement,
     collect: collected,
     crawl: crawler.stats,
+    hydrate: hydrator.stats,
     client: xClient.stats,
     transfer,
     discoveryStrategy: discovery.name,

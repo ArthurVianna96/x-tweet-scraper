@@ -13,6 +13,7 @@ const base = {
     detail: null,
   },
   collect: { fetched: 120, filteredOut: 108, duplicatesDropped: 2, pushed: 10, stoppedAtCap: true },
+  hydrate: { requested: 0, hydrated: 0, missing: 0 },
   crawl: {
     seedsResolved: 5,
     accountsCrawled: 3,

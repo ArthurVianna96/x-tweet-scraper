@@ -3,12 +3,6 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
-    "searchTerms": {
-      "title": "Search terms",
-      "type": "array",
-      "description": "Keywords to match against tweet text (case-insensitive). Multiple terms are OR'd. X's search endpoint is closed to logged-out clients, so with no `fromUsers` supplied these keywords also seed account discovery via one search-engine lookup — see the README on recall.",
-      "editor": "stringList"
-    },
     "fromUsers": {
       "title": "From these accounts",
       "type": "array",
@@ -16,22 +10,22 @@
       "editor": "stringList",
       "prefill": ["apify", "naval"]
     },
-    "toUsers": {
-      "title": "Replies directed at",
+    "tweetIds": {
+      "title": "Tweet IDs",
       "type": "array",
-      "description": "Client-side filter: keeps replies that mention these handles. There is no mention index available to logged-out clients, so this filters the crawled set rather than searching X.",
+      "description": "Specific tweet ids to hydrate, one request each. This is a target in its own right: a run may supply only tweetIds and no accounts. An id that names a deleted or unreachable tweet is counted and skipped, never fatal.",
       "editor": "stringList"
     },
-    "mentioning": {
-      "title": "Mentioning",
+    "searchTerms": {
+      "title": "Search terms",
       "type": "array",
-      "description": "Client-side filter: keeps tweets mentioning these handles.",
+      "description": "Keywords to match against tweet text (case-insensitive). Multiple terms are OR'd. X's search timeline is closed to guest tokens, so this is the stretch surface: with no `fromUsers` supplied these keywords also seed account discovery via one search-engine lookup. Recall is seed-bounded — see the README.",
       "editor": "stringList"
     },
     "hashtags": {
       "title": "Hashtags",
       "type": "array",
-      "description": "Without '#'. Matched case-insensitively against the tweet's hashtag entities.",
+      "description": "Without '#'. A post-filter over the timelines a target produced, matched case-insensitively against the tweet's hashtag entities — not a target on its own.",
       "editor": "stringList"
     },
     "since": {

@@ -3,12 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { parseInput, toFilterCriteria, topicTerms } from './input.js';
 
 describe('input validation (brief §4)', () => {
-  it('requires at least one of searchTerms, fromUsers or hashtags', () => {
+  it('requires one of the three targets: fromUsers, tweetIds or searchTerms', () => {
     expect(() => parseInput({})).toThrow(/At least one of/);
     expect(() => parseInput({ minLikes: 5 })).toThrow(/At least one of/);
-    expect(() => parseInput({ searchTerms: ['scraping'] })).not.toThrow();
     expect(() => parseInput({ fromUsers: ['apify'] })).not.toThrow();
-    expect(() => parseInput({ hashtags: ['data'] })).not.toThrow();
+    expect(() => parseInput({ tweetIds: ['2088525549626867786'] })).not.toThrow();
+    expect(() => parseInput({ searchTerms: ['scraping'] })).not.toThrow();
+  });
+
+  it('does not accept hashtags as a target — it is a post-filter (brief §4)', () => {
+    expect(() => parseInput({ hashtags: ['data'] })).toThrow(/At least one of/);
+    expect(() => parseInput({ fromUsers: ['apify'], hashtags: ['data'] })).not.toThrow();
+  });
+
+  it('rejects a tweet id that is not a snowflake, rather than fetching nothing', () => {
+    expect(() => parseInput({ tweetIds: ['https://x.com/apify/status/123'] })).toThrow(
+      /numeric tweet id/,
+    );
+    expect(() => parseInput({ tweetIds: [''] })).toThrow(/numeric tweet id/);
   });
 
   it('fails loudly with a readable message rather than scraping nothing quietly', () => {
@@ -25,10 +37,9 @@ describe('input validation (brief §4)', () => {
   });
 
   it('strips @ from handles and # from hashtags', () => {
-    const input = parseInput({ fromUsers: ['@apify'], toUsers: ['@naval'], hashtags: ['#data'] });
+    const input = parseInput({ fromUsers: ['@apify'], hashtags: ['#data'] });
 
     expect(input.fromUsers).toEqual(['apify']);
-    expect(input.toUsers).toEqual(['naval']);
     expect(input.hashtags).toEqual(['data']);
   });
 
@@ -71,7 +82,6 @@ describe('toFilterCriteria', () => {
       parseInput({
         searchTerms: ['scraping'],
         hashtags: ['data'],
-        mentioning: ['apify'],
         since: '2026-08-01',
         until: '2026-08-14',
         language: 'en',
@@ -85,7 +95,6 @@ describe('toFilterCriteria', () => {
     expect(criteria).toMatchObject({
       searchTerms: ['scraping'],
       hashtags: ['data'],
-      mentioning: ['apify'],
       since: '2026-08-01',
       until: '2026-08-14',
       language: 'en',

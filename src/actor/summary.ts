@@ -2,6 +2,7 @@ import type { CollectStats } from '../domain/collect.js';
 import type { Entitlement } from '../domain/entitlement.js';
 import type { TransferStats } from '../adapters/http/counting.js';
 import type { CrawlStats } from '../adapters/x/crawl.js';
+import type { HydrateStats } from '../adapters/x/hydrate.js';
 import type { XClientStats } from '../adapters/x/graphql.js';
 
 /**
@@ -22,6 +23,9 @@ export interface RunSummary {
   readonly limited: boolean;
   readonly reason: string | null;
   readonly cap: number | null;
+
+  /** The by-id surface (brief §2a): ids asked for, hydrated, and not found. */
+  readonly hydratedById: HydrateStats;
 
   readonly discoveryStrategy: string;
   readonly discoveryRequests: number;
@@ -71,6 +75,7 @@ export interface SummaryInputs {
   readonly entitlement: Entitlement;
   readonly collect: CollectStats;
   readonly crawl: CrawlStats;
+  readonly hydrate: HydrateStats;
   readonly client: XClientStats;
   readonly transfer: TransferStats;
   readonly discoveryStrategy: string;
@@ -92,6 +97,8 @@ export function buildRunSummary(inputs: SummaryInputs): RunSummary {
     limited: inputs.entitlement.limited,
     reason: inputs.entitlement.reason,
     cap: inputs.entitlement.cap,
+
+    hydratedById: inputs.hydrate,
 
     discoveryStrategy: inputs.discoveryStrategy,
     discoveryRequests: crawl.discoveryRequests,
