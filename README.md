@@ -419,6 +419,13 @@ your plan:
 | Compute   | 0.008 CU → $0.003    | 0.26 CU → $0.10     |
 | **Total** | **≈ $0.41 / 1k**     | **≈ $7.49 / 1k**    |
 
+**The extrapolation is linear and part of the cost is not.** Cold start — the ~1.8 MB
+queryId bundle and the first guest token — is paid once regardless of run size, so a small
+run spreads it thin and overstates per-1k cost. The same native path reports ≈$2.19/1k on a
+10-item free run and ≈$0.41/1k on a 100-item run. The figure is only meaningful for runs
+large enough to amortise cold start, which is why `bytesTransferred` is published next to
+it.
+
 **Read the gap, not the headline.** The 32× difference between the two paths is the
 architecture stating its own limitation: native extraction from known handles is fast and
 cheap, and keyword _matching_ is expensive because recall is seed-bounded and selectivity

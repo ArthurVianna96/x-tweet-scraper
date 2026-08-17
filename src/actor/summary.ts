@@ -124,6 +124,13 @@ export function buildRunSummary(inputs: SummaryInputs): RunSummary {
  * Extrapolated from this run's measured bytes and wall clock, not from a guess. With
  * nothing pushed there is nothing to extrapolate from, so the estimate is zeroed rather
  * than divided by zero.
+ *
+ * **The extrapolation is linear, and part of a run's cost is not.** Cold start — the
+ * ~1.8 MB queryId bundle and the first guest token — is paid once regardless of run size,
+ * so a small run spreads it over few results and overstates the per-1k figure. Measured:
+ * the same native path reports ~$2.19/1k on a 10-item free run and ~$0.41/1k on a
+ * 100-item run. Treat the number as reliable only for runs large enough to amortise cold
+ * start, and read `bytesTransferred` alongside it.
  */
 export function estimateCost(inputs: {
   bytes: number;
