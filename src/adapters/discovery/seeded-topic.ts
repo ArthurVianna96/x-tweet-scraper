@@ -22,8 +22,31 @@ export interface SeededTopicOptions {
   readonly maxQueries?: number;
   readonly maxHandles?: number;
   readonly proxyUrl?: string | undefined;
-  readonly onEvent?: (event: { query: string; found: number; statusCode: number }) => void;
+  readonly onEvent?: (event: {
+    query: string;
+    engine: string;
+    found: number;
+    statusCode: number;
+  }) => void;
 }
+
+/**
+ * A cascade, not a dependency. Measured 2026-08-17 from a single residential IP after a
+ * dozen queries: DuckDuckGo began answering `202` with a 14 KB anti-bot challenge, while
+ * Brave answered `200` with usable results on the same query in the same minute. Mojeek
+ * and Ecosia returned `403`; Bing returned `200` but wraps every result in a base64
+ * redirect, so no handles are recoverable from the HTML.
+ *
+ * Order is by cost: DuckDuckGo's endpoints are ~14–32 KB, Brave's page is ~197 KB, and
+ * this traffic goes through the same paid proxy as everything else. The first engine that
+ * yields handles wins; the rest are never called.
+ */
+const ENGINES: ReadonlyArray<{ name: string; url: (query: string) => string }> = [
+  { name: 'ddg-html', url: (q) => `https://html.duckduckgo.com/html/?q=${q}` },
+  { name: 'ddg-lite', url: (q) => `https://lite.duckduckgo.com/lite/?q=${q}` },
+  { name: 'brave', url: (q) => `https://search.brave.com/search?q=${q}` },
+  { name: 'startpage', url: (q) => `https://www.startpage.com/sp/search?query=${q}` },
+];
 
 /**
  * Paths under x.com that are not accounts. Without this list the seed set fills up with
@@ -87,35 +110,37 @@ export class SeededTopicDiscovery implements DiscoveryStrategy {
       // One coherent browser identity per lookup, same reasoning as the X session
       // triples: a search engine reads header incoherence the same way X does.
       const headers = generateBrowserHeaders();
+      const query = encodeURIComponent(`site:x.com ${term}`);
 
-      for (const url of endpointsFor(term)) {
+      for (const engine of ENGINES) {
         requests++;
-        const response = await this.opts.http({
-          url,
-          headers,
-          proxyUrl: this.opts.proxyUrl,
-        });
 
-        const found = extractHandles(response.body);
-        this.opts.onEvent?.({ query: term, found: found.length, statusCode: response.statusCode });
+        let found: string[] = [];
+        let statusCode = 0;
+        try {
+          const response = await this.opts.http({
+            url: engine.url(query),
+            headers,
+            proxyUrl: this.opts.proxyUrl,
+          });
+          statusCode = response.statusCode;
+          // Anything but a 200 is a challenge, a block or an error — never results.
+          found = statusCode === 200 ? extractHandles(response.body) : [];
+        } catch {
+          // A dead engine is not a dead run; fall through to the next one.
+          found = [];
+        }
+
+        this.opts.onEvent?.({ query: term, engine: engine.name, found: found.length, statusCode });
         for (const handle of found) handles.add(handle);
 
-        // The lite endpoint is only tried when the HTML one returned nothing useful,
-        // which keeps the common case at exactly one external request per term.
+        // The first engine that answers wins; the rest are never called.
         if (found.length > 0) break;
       }
     }
 
     return { handles: [...handles].slice(0, this.opts.maxHandles ?? 25), requests };
   }
-}
-
-function endpointsFor(term: string): string[] {
-  const query = encodeURIComponent(`site:x.com ${term}`);
-  return [
-    `https://html.duckduckgo.com/html/?q=${query}`,
-    `https://lite.duckduckgo.com/lite/?q=${query}`,
-  ];
 }
 
 export function extractHandles(html: string): string[] {
