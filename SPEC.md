@@ -534,18 +534,3 @@ on drift. Out of scope here.
 - **`toUsers`/`mentioning`** behave as client-side filters over the seed set, not as a
   true mention index — no such index is reachable.
 - **Live contract testing** against X is not automated (§8).
-
----
-
-## 10. Open items for Arthur
-
-1. **Send the assessment email** — findings + chosen path. The `(a)/(b)` question in the
-   earlier draft is stale; replace with D1 and add the `twitter-scraper-lite` line.
-2. **Re-run `probe-x-endpoints.mjs` yourself**, ideally once through a residential proxy,
-   before citing its numbers under your name.
-3. **Optional, 15 min:** Google CSE free tier with `dateRestrict=d7` on a keyword query,
-   to close the last unknown from Round 1. Prediction: near-empty, since the freshest
-   indexed keyword result measured was 36 days old. If wrong, `SearchIndexDiscovery`
-   returns to the table.
-4. **Rotate your X session** — `auth_token` / `ct0` were pasted earlier in this session.
-5. **Define project conventions**, then hand this spec back for implementation.
