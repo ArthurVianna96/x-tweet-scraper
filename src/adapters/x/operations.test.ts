@@ -6,7 +6,7 @@ import type { XClient } from './graphql.js';
 import { fetchUserProfile, streamUserTweets } from './operations.js';
 
 /**
- * Pagination stop conditions (SPEC.md §2, and the terminate-direction finding in
+ * Pagination stop conditions (the spec, and the terminate-direction finding in
  * `timeline.ts`). The client is a stub returning canned pages, so this is pure logic.
  */
 
@@ -165,7 +165,7 @@ describe('streamUserTweets', () => {
 });
 
 /**
- * The profile surface (brief §2a): handle → §5's `author`, asserted against a real
+ * The profile surface: handle → the spec's `author`, asserted against a real
  * `UserByScreenName` payload rather than a hand-written one.
  */
 describe('fetchUserProfile', () => {
@@ -179,7 +179,7 @@ describe('fetchUserProfile', () => {
     } as unknown as XClient;
   }
 
-  it('returns exactly the §5 author fields', async () => {
+  it('returns exactly the author fields the output contract needs', async () => {
     const profile = await fetchUserProfile(profileClient(PROFILE), '@apify');
 
     expect(profile).toMatchObject({

@@ -82,7 +82,7 @@ describe('.actor/input_schema.json', () => {
   );
 
   it('never caps maxResults in the schema', () => {
-    // A `"maximum": 10` here would be a client-side limit, which brief §6 rejects as
+    // A `"maximum": 10` here would be a client-side limit, which the spec rejects as
     // protection, and it would break paying users. The gate is server-side, on purpose.
     expect(schema.properties['maxResults']?.maximum).toBeUndefined();
     expect(schema.properties['maxResults']?.description).toMatch(/free/i);

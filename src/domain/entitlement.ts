@@ -1,39 +1,27 @@
 import { z } from 'zod';
 
 /**
- * Entitlement policy (SPEC.md §4.4, §4.6). Pure: the *decision*, not the lookup.
- *
- * Identity resolution (§4.1) and the HMAC'd store read (§4.2) are adapter concerns —
- * see `adapters/entitlement/`. This module only answers: given whatever came back,
- * is this run paid? It defaults to deny, always.
+ * The entitlement decision, not the lookup. Given whatever came back from the store, is
+ * this run paid? Defaults to deny on every path.
  */
 
-/** Brief §6: unverified users are capped at 10 results per run. */
 export const FREE_TIER_CAP = 10;
 
 export type LimitReason =
-  /** We verified the user and they are on the free tier. Expected, not alertable. */
   | 'free_tier'
-  /**
-   * We could not verify. Same cap, different meaning: a *paying* customer may be
-   * getting capped right now. This is the condition worth an alert (SPEC.md §4.6).
-   */
+  /** Could not verify. Same cap, but this one may be capping a paying customer. */
   | 'entitlement_unavailable';
 
 export interface Entitlement {
   readonly paid: boolean;
   readonly limited: boolean;
   readonly reason: LimitReason | null;
-  /** `null` means uncapped — the user's own `maxResults` is the only limit. */
+  /** `null` means uncapped — the caller's own `maxResults` is the only limit. */
   readonly cap: number | null;
-  /** Human-readable cause, for the structured log line. `null` when nothing went wrong. */
   readonly detail: string | null;
 }
 
-/**
- * Extra keys are tolerated (`plan`, `updatedAt`, …) so the store can grow without a
- * deploy, but `paid` must be a real boolean. `undefined` must never reach the check.
- */
+/** Extra keys are tolerated so the store can grow without a deploy. `paid` may not be. */
 const EntitlementRecord = z.object({ paid: z.boolean() }).passthrough();
 
 const PAID: Entitlement = {
@@ -53,16 +41,9 @@ const free = (reason: LimitReason, detail: string | null = null): Entitlement =>
 });
 
 /**
- * Resolve the verdict for this run.
- *
- * @param fetchRecord Reads the entitlement record for the runner. Resolves to `null`
- *   when no record exists (an unknown user is simply a free user), and **throws** when
- *   the lookup itself failed — network, timeout, auth. The two are different verdicts,
- *   which is why they are different signals. Timeouts belong to the adapter (an
- *   `AbortSignal`), so this stays pure and instantly testable.
- *
- * Fails closed on every path: there is no input to this function that yields `paid`
- * except a well-formed record that literally says `paid: true`.
+ * @param fetchRecord Resolves to `null` when the user has no record — an unprovisioned
+ *   user is a free user — and throws when the lookup itself failed. Those are different
+ *   verdicts, so they are different signals.
  */
 export async function resolveEntitlement(
   fetchRecord: () => Promise<unknown>,
@@ -74,43 +55,28 @@ export async function resolveEntitlement(
     return free('entitlement_unavailable', errorMessage(err));
   }
 
-  // No record at all is a definite answer: this user has never been provisioned.
   if (record === null || record === undefined) return free('free_tier');
 
   const parsed = EntitlementRecord.safeParse(record);
   if (!parsed.success) {
-    // Our own store is malformed. Cap, but flag it as unverified rather than as a
-    // confirmed free user — the distinction is the whole point of §4.6.
+    // Our own store is malformed: cap, but as unverified rather than confirmed free.
     return free('entitlement_unavailable', 'malformed entitlement record');
   }
 
-  // `=== true`, never `!== false`. With `!== false`, an absent field would read as
-  // paid and hand out unlimited results (SPEC.md §4.4).
+  // `=== true`, never `!== false`, which would read an absent field as paid.
   return parsed.data.paid === true ? PAID : free('free_tier');
 }
 
-/**
- * The cap actually applied to this run: the user's request, lowered to the free ceiling
- * when they are not entitled. Asking for 1000 on the free tier yields 10.
- */
 export function effectiveCap(entitlement: Entitlement, maxResults: number): number {
   if (entitlement.cap === null) return maxResults;
   return Math.min(maxResults, entitlement.cap);
 }
 
 /**
- * Requests a free run may spend for each result it is allowed to return.
- *
- * **The push cap does not bound cost on its own.** It stops the run at 10 *matches*, and
- * a low-selectivity search may never reach 10 — it exhausts the account frontier first,
- * so the gate never engages. Measured on the shipped Actor: a free run with
- * `searchTerms: ["web scraping"]` fetched 7,287 tweets across 284 pages, spending 328
- * requests and 10 guest tokens, to deliver 9 results. The same free tier on a `fromUsers`
- * run costs 3. The cap was working correctly in both; only one was affordable.
- *
- * So an unverified run is bounded on both axes. At 10 results the allowance is 100
- * requests — roughly 2,000 tweets scanned, generous for a sample and two orders of
- * magnitude below "however many accounts exist".
+ * The push cap does not bound cost on its own: it stops the run at 10 *matches*, and a
+ * selective filter may exhaust the account frontier without ever reaching 10. So an
+ * unverified run is bounded on both axes — results by the cap, requests by this
+ * allowance.
  */
 export const FREE_TIER_REQUESTS_PER_RESULT = 10;
 

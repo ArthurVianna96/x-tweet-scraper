@@ -3,13 +3,10 @@ import { gotScraping } from 'got-scraping';
 import { DEFAULT_TIMEOUT_MS, type HttpClient } from './client.js';
 
 /**
- * The real transport: `got-scraping`, which gives us a browser-shaped TLS/HTTP2
- * fingerprint and header ordering without running a browser (brief §3).
+ * `got-scraping` gives a browser-shaped TLS/HTTP2 fingerprint without running a browser.
  *
- * Header *generation* is switched off here on purpose. Headers are minted once per
- * session triple and pinned for its lifetime (SPEC.md §5.1) — regenerating them per
- * request would make a single guest token appear to be a different browser on every
- * call, which is exactly the incoherence X's abuse detection looks for.
+ * Header generation is off on purpose: headers are minted once per session triple and
+ * pinned, so that one guest token does not look like a different browser on every call.
  */
 export function createGotClient(): HttpClient {
   return async (req) => {
@@ -19,10 +16,10 @@ export function createGotClient(): HttpClient {
       headers: { ...req.headers },
       proxyUrl: req.proxyUrl,
       timeout: { request: req.timeoutMs ?? DEFAULT_TIMEOUT_MS },
-      // Status codes are data, not exceptions — see the port docs.
+      // Status codes are data, not exceptions.
       throwHttpErrors: false,
       followRedirect: true,
-      retry: { limit: 0 }, // retries are a policy decision, made in adapters/x/errors.ts
+      retry: { limit: 0 }, // retry policy belongs to adapters/x/errors
       responseType: 'text',
       useHeaderGenerator: false,
       http2: true,

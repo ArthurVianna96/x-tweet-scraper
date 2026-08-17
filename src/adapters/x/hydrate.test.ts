@@ -6,7 +6,7 @@ import type { XClient } from './graphql.js';
 import { TweetHydrator } from './hydrate.js';
 
 /**
- * The by-id surface (brief §2a). The client is a stub, so this is offline and asserts
+ * The by-id surface. The client is a stub, so this is offline and asserts
  * the two things that matter: one request per distinct id, and one dead id never
  * failing a run of many.
  */
@@ -44,7 +44,7 @@ async function drain(hydrator: TweetHydrator): Promise<string[]> {
 }
 
 describe('TweetHydrator', () => {
-  it('normalizes a real TweetResultByRestId payload to the §5 contract', async () => {
+  it('normalizes a real TweetResultByRestId payload to the output contract', async () => {
     const { client } = stubClient(() => REAL_PAYLOAD);
     const hydrator = new TweetHydrator({
       client,
@@ -86,7 +86,7 @@ describe('TweetHydrator', () => {
     expect(hydrator.stats).toMatchObject({ requested: 2, hydrated: 1, missing: 1 });
   });
 
-  it('a suspended or deleted target is skipped, never fatal (brief §11)', async () => {
+  it('a suspended or deleted target is skipped, never fatal', async () => {
     const { client } = stubClient((id) => {
       if (id === '1') throw new TargetUnavailableError('1', 'suspended');
       return REAL_PAYLOAD;
@@ -97,7 +97,7 @@ describe('TweetHydrator', () => {
     expect(hydrator.stats.missing).toBe(1);
   });
 
-  it('is lazy, so the free-tier cap stops the fetching (SPEC.md §4.3)', async () => {
+  it('is lazy, so the free-tier cap stops the fetching', async () => {
     const { client, requested } = stubClient(() => REAL_PAYLOAD);
     const ids = Array.from({ length: 100 }, (_, i) => String(1000 + i));
     const hydrator = new TweetHydrator({ client, tweetIds: ids });

@@ -4,19 +4,16 @@ import type { HttpClient, HttpResponse } from '../http/client.js';
 import { GUEST_ACTIVATE_URL, PUBLIC_WEB_BEARER } from './constants.js';
 
 /**
- * The session triple (SPEC.md §5.1): one guest token, one proxy IP, one browser header
- * set — created together, retired together.
+ * One guest token, one proxy IP, one browser header set — created and retired together.
  *
- * X's abuse detection looks for *coherence*. A real browser is one token on one IP with
- * one user-agent for the life of a session; one token arriving from twelve residential
- * IPs in ninety seconds is a pattern no browser produces. Pinning also bounds the damage
- * of a burned triple to 1/N of capacity, whereas hopping leaks the cross-product and
- * makes the whole pool linkable from a single observation.
+ * Abuse detection looks for coherence: a real browser is one token on one IP with one
+ * user-agent for a session, not one token arriving from twelve IPs in ninety seconds.
+ * Pinning also bounds a burned triple to 1/N of capacity.
  */
 export interface XSession {
   readonly id: string;
   readonly guestToken: string;
-  /** Pinned for the session's whole life. Regenerating per request is the bug. */
+  /** Pinned for the session's life; regenerating per request defeats the point. */
   readonly headers: Readonly<Record<string, string>>;
   readonly proxyUrl: string | undefined;
   requestsMade: number;
@@ -28,11 +25,7 @@ export interface XSession {
   retiredReason: string | null;
 }
 
-/**
- * Retire a triple while it still has requests left, so a 429 is never actually taken.
- * Proactive budgeting beats reactive backoff: the run summary should report `429: 0`
- * (SPEC.md §5.2).
- */
+/** Retire while requests remain, so a 429 is never actually taken. */
 export const RETIRE_AT_REMAINING = 5;
 
 /** How many requests a triple serves before the pool adds another. See `acquire`. */
@@ -88,7 +81,7 @@ export interface SessionPoolOptions {
   readonly http: HttpClient;
   /** Sticky proxy URL for a session id. Return `undefined` to run without a proxy. */
   readonly newProxyUrl: (sessionId: string) => Promise<string | undefined>;
-  /** Upper bound on live triples. Each is worth ~50 requests / 15 min (SPEC.md §6). */
+  /** Upper bound on live triples. Each is worth ~50 requests / 15 min. */
   readonly maxSessions: number;
   readonly onEvent?: (event: SessionEvent) => void;
 }
@@ -98,9 +91,8 @@ export type SessionEvent =
   | { readonly type: 'retired'; readonly sessionId: string; readonly reason: string };
 
 /**
- * A pool of triples. Guest tokens are free and instant to mint, which is why the
- * response to a 429 is "rotate", not "wait": waiting fifteen minutes for a resource
- * that costs ~200 ms to replace is the largest throughput mistake available here.
+ * Guest tokens are free and instant to mint, which is why a 429 means rotate rather than
+ * wait: the alternative is idling fifteen minutes for a resource that costs ~200 ms.
  */
 export class SessionPool {
   private readonly sessions: XSession[] = [];
@@ -110,7 +102,7 @@ export class SessionPool {
 
   constructor(private readonly opts: SessionPoolOptions) {}
 
-  /** Total triples minted over the run — reported as `tokensConsumed` (SPEC.md §7). */
+  /** Total triples minted over the run — reported as `tokensConsumed`. */
   get totalCreated(): number {
     return this.created;
   }
@@ -126,24 +118,15 @@ export class SessionPool {
       (session) => session.remaining === null || session.remaining > RETIRE_AT_REMAINING,
     );
 
-    /**
-     * The pool grows with demand, not with request count.
-     *
-     * Minting a fresh triple per request would be the opposite of the design: it hands X
-     * a new token from a new IP on every call, which is the incoherence §5.1 exists to
-     * avoid, and it wastes the 50-request budget each token comes with. So a triple
-     * serves at least `REQUESTS_BEFORE_GROWING` requests before another is added, up to
-     * `maxSessions`.
-     */
+    // Grows with demand, not with request count: a triple per request would hand X a new
+    // token from a new IP every time, and waste the budget each token comes with.
     const shouldGrow =
       usable.length === 0 ||
       (this.sessions.length < this.opts.maxSessions &&
         this.requestsAcrossPool() >= this.sessions.length * REQUESTS_BEFORE_GROWING);
 
     if (shouldGrow) {
-      // Collapse concurrent cold starts. Without this, N account chains starting at once
-      // each see an empty pool and mint their own token — the exact per-request-token
-      // behaviour the growth policy exists to prevent.
+      // Collapse concurrent cold starts, or N chains each mint their own token.
       this.creating ??= this.create().finally(() => {
         this.creating = null;
       });
@@ -152,9 +135,8 @@ export class SessionPool {
       return session;
     }
 
-    // Round-robin across live triples so no single token burns its budget first.
-    // `usable` is non-empty here — an empty pool takes the grow branch above — so the
-    // guard is `noUncheckedIndexedAccess` appeasement, not a reachable state.
+    // Round-robin so no single token burns its budget first. `usable` is non-empty here;
+    // the guard satisfies noUncheckedIndexedAccess rather than a reachable state.
     const session = usable[this.cursor++ % usable.length];
     if (session === undefined) throw new Error('session pool: unreachable empty rotation');
     return session;
@@ -164,10 +146,7 @@ export class SessionPool {
     return this.sessions.reduce((total, session) => total + session.requestsMade, 0);
   }
 
-  /**
-   * Feed every response back so the pool can budget proactively rather than discover
-   * exhaustion by being refused.
-   */
+  /** Every response is fed back, so the pool budgets rather than waits to be refused. */
   observe(session: XSession, response: HttpResponse): void {
     session.requestsMade++;
 
@@ -225,14 +204,7 @@ function numericHeader(response: HttpResponse, name: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/**
- * Apify Proxy validates session IDs against `/^[\w._~]+$/` — **no hyphens**.
- *
- * A hyphenated id throws on the very first `newUrl()` call, which fails the entire run
- * before a single request is made. It is invisible in local testing, because running
- * without a proxy never calls `newUrl()` at all; the first time it fired was the first
- * deployed run.
- */
+/** Apify Proxy validates session ids against this, and rejects hyphens. */
 export const APIFY_SESSION_ID_PATTERN = /^[\w._~]+$/;
 
 export function sessionId(index: number, suffix: string): string {

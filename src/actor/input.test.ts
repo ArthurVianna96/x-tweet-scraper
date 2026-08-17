@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { parseInput, toFilterCriteria, topicTerms } from './input.js';
 
-describe('input validation (brief §4)', () => {
+describe('input validation', () => {
   it('requires one of the three targets: fromUsers, tweetIds or searchTerms', () => {
     expect(() => parseInput({})).toThrow(/At least one of/);
     expect(() => parseInput({ minLikes: 5 })).toThrow(/At least one of/);
@@ -11,7 +11,7 @@ describe('input validation (brief §4)', () => {
     expect(() => parseInput({ searchTerms: ['scraping'] })).not.toThrow();
   });
 
-  it('does not accept hashtags as a target — it is a post-filter (brief §4)', () => {
+  it('does not accept hashtags as a target — it is a post-filter', () => {
     expect(() => parseInput({ hashtags: ['data'] })).toThrow(/At least one of/);
     expect(() => parseInput({ fromUsers: ['apify'], hashtags: ['data'] })).not.toThrow();
   });
@@ -54,7 +54,7 @@ describe('input validation (brief §4)', () => {
 
   it('does not cap maxResults at the free-tier limit', () => {
     // A `"maximum": 10` here would break paying users, and a client-side limit is
-    // exactly what brief §6 rejects as protection. The gate is server-side (SPEC.md §3.1).
+    // exactly what the spec rejects as protection. The gate is server-side.
     expect(parseInput({ fromUsers: ['apify'], maxResults: 100_000 }).maxResults).toBe(100_000);
   });
 

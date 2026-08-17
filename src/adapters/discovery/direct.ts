@@ -1,12 +1,6 @@
 import type { DiscoveryResult, DiscoveryStrategy } from './types.js';
 
-/**
- * `fromUsers` was supplied, so there is nothing to discover.
- *
- * This is the path on which the Actor is fully self-contained: no search engine, no
- * third party, nothing but X. It is the answer to the fair criticism of the seeded path,
- * which is that cold start has one external dependency.
- */
+/** `fromUsers` was supplied: nothing to discover, and nothing but X is contacted. */
 export class DirectHandleDiscovery implements DiscoveryStrategy {
   readonly name = 'direct';
 

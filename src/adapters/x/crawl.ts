@@ -7,40 +7,27 @@ import { normalizeTweet } from './normalizer.js';
 import { fetchUserProfile, streamUserTweets } from './operations.js';
 
 /**
- * The crawl: discovery → `UserByScreenName` → `UserTweets` (cursored) → normalized
- * tweets, N accounts at a time (SPEC.md §2, §6).
+ * discovery → profile → timeline pages → normalized tweets, N accounts at a time.
  *
- * It is a generator on purpose. Nothing is fetched until the consumer pulls, so the
- * free-tier cap stops the crawl rather than truncating its output, and a consumer that
- * breaks unwinds every in-flight account chain (§4.3).
+ * A generator on purpose: nothing is fetched until the consumer pulls, so the cap stops
+ * the crawl rather than truncating its output.
  */
 
 export interface CrawlOptions {
   readonly client: XClient;
   readonly discovery: DiscoveryStrategy;
-  /** Account chains in flight at once. A cursor chain cannot be parallelised internally. */
+  /** Account chains in flight at once; a single chain cannot be parallelised. */
   readonly concurrency?: number;
   readonly maxPagesPerAccount?: number;
   readonly maxAccounts?: number;
-  /**
-   * Hard ceiling on X requests for the whole run.
-   *
-   * This is a cost control, and it is not optional in practice. Measured on a real
-   * keyword run before it existed: `searchTerms: ["web scraping"]` against seeded
-   * accounts matched 9 tweets out of 10,527 fetched — a selectivity of 0.09% — and spent
-   * 518 requests and 91 MB of proxy traffic getting there. Low-selectivity filters are
-   * normal, and without a budget the run's cost is bounded only by how many accounts
-   * exist (SPEC.md §6).
-   */
+  /** Without this, a low-selectivity run costs whatever the account frontier costs. */
   readonly maxRequests?: number;
   /**
-   * Snowball depth. One `UserTweets` page names ~37 distinct handles through mentions
-   * and retweeted authors, at zero extra request cost — that data is already in a
-   * response we paid for. Depth is limited (default 1) because mentions from a topical
-   * account are not all topical, and precision decays fast.
+   * Snowball depth. Mentions and retweeted authors are already in pages we paid for, so
+   * the frontier grows free. Kept shallow because precision decays fast.
    */
   readonly expansionDepth?: number;
-  /** Cursors from a previous incarnation of this run, by handle (SPEC.md §5.3). */
+  /** Cursors from an earlier incarnation of this run, by handle. */
   readonly cursors?: Readonly<Record<string, string>>;
   readonly now?: () => Date;
   readonly onEvent?: (event: CrawlEvent) => void;
@@ -59,9 +46,8 @@ export interface CrawlStats {
   discoveryRequests: number;
   handlesDiscovered: number;
   accountsSkipped: { protected: number; suspended: number; notFound: number };
-  /** True when the run stopped because it hit its request budget, not because it finished. */
+  /** The run stopped on its request budget rather than finishing. */
   budgetExhausted: boolean;
-  /** Live cursor per handle, for checkpointing. */
   readonly cursors: Record<string, string>;
 }
 
@@ -83,7 +69,7 @@ export class Crawler {
     return this.opts.expansionDepth ?? 1;
   }
 
-  /** @returns true when the run has spent its request budget and must wind down. */
+  /** @returns true when the request budget is spent and the run must wind down. */
   private outOfBudget(): boolean {
     const max = this.opts.maxRequests;
     if (max === undefined) return false;
@@ -119,11 +105,7 @@ export class Crawler {
       for (const handle of batch) visited.add(handle.toLowerCase());
       if (batch.length === 0) break;
 
-      /**
-       * Parallelising *across accounts* is the equivalent of time-window sharding a
-       * search query: it is the only axis available, because page 2 of a timeline needs
-       * page 1's cursor (SPEC.md §6).
-       */
+      // Across accounts is the only axis available: page 2 needs page 1's cursor.
       yield* mergeConcurrent(
         batch.map(
           (handle) => () => this.account(handle, depth, nextFrontier)[Symbol.asyncIterator](),
@@ -148,8 +130,7 @@ export class Crawler {
       const user = await fetchUserProfile(this.opts.client, handle);
 
       if (user.protected) {
-        // A protected account is readable as a profile but not as a timeline. Counting
-        // and skipping is the whole "graceful degradation" requirement (brief §7, §11).
+        // Readable as a profile, but not as a timeline.
         this.stats.accountsSkipped.protected++;
         this.opts.onEvent?.({ type: 'account-skipped', handle, reason: 'protected' });
         return;
@@ -185,7 +166,7 @@ export class Crawler {
         if (depth < this.maxDepth) collectExpansion(tweet, nextFrontier);
         yield tweet;
 
-        // Checked after yielding so the tweets already paid for are not thrown away.
+        // After yielding, so tweets already paid for are not thrown away.
         if (this.outOfBudget()) return;
       }
     } catch (err) {
@@ -206,10 +187,7 @@ export class Crawler {
   }
 }
 
-/**
- * Seed expansion, native and free: mentions and retweeted authors are already in the
- * page we paid for, so growing the frontier costs zero extra requests.
- */
+/** Free: these handles are already in a page we paid for. */
 function collectExpansion(tweet: Tweet, frontier: string[]): void {
   for (const mention of tweet.entities.mentions) frontier.push(mention);
 }

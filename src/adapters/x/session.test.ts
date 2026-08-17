@@ -70,7 +70,7 @@ describe('session ids are valid for Apify Proxy', () => {
   });
 });
 
-describe('session triples (SPEC.md §5.1)', () => {
+describe('session triples', () => {
   it('pins one token to one proxy session and one header set', async () => {
     const { http } = fakeHttp();
     const pool = new SessionPool({

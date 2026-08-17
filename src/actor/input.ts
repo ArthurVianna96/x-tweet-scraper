@@ -3,9 +3,8 @@ import { z } from 'zod';
 import type { FilterCriteria } from '../domain/filters.js';
 
 /**
- * Input validation (brief §4). Zod at the boundary: malformed input fails loudly with a
- * readable message and a non-zero exit, rather than producing a plausible-looking empty
- * dataset that nobody investigates.
+ * Zod at the boundary, so malformed input fails loudly instead of producing a
+ * plausible-looking empty dataset.
  */
 
 const handleList = z
@@ -29,9 +28,8 @@ export const ProxyConfigurationSchema = z.object({
 export const ActorInputSchema = z
   .object({
     /**
-     * The three targets (brief §2a). `fromUsers` and `tweetIds` map to guest-reachable
-     * operations; `searchTerms` is the stretch surface and is served through discovery
-     * (README §2), not through X's own gated search.
+     * The three targets. `fromUsers` and `tweetIds` map to guest-reachable operations;
+     * `searchTerms` is served through discovery, X's own search being closed to guests.
      */
     fromUsers: handleList.optional(),
     tweetIds: z.array(z.string().trim().regex(/^\d+$/, 'must be a numeric tweet id')).optional(),
@@ -53,17 +51,15 @@ export const ActorInputSchema = z
     onlyVerified: z.boolean().optional(),
     mediaType: z.enum(['images', 'video', 'links', 'text_only']).optional(),
 
-    // §4 states the default for retweets only; we default both and document the choice.
+    // The brief states a default for retweets only; we default both.
     includeReplies: z.boolean().default(false),
     includeRetweets: z.boolean().default(false),
 
     sortBy: z.enum(['latest', 'top']).default('latest'),
 
     /**
-     * The *requested* cap. Deliberately unbounded here: a `"maximum": 10` in the input
-     * schema would break paying users, and a limit expressed in the input is exactly the
-     * client-side artifact brief §6 rejects as protection. The server-side gate in
-     * `domain/entitlement.ts` is the only enforcement (SPEC.md §3.1).
+     * Deliberately unbounded. A `"maximum": 10` here would break paying users, and a
+     * limit expressed in the input is not protection — `domain/entitlement` is.
      */
     maxResults: z.number().int().positive().default(100),
 
@@ -72,20 +68,13 @@ export const ActorInputSchema = z
     // --- operational knobs, all optional ---
     maxConcurrency: z.number().int().positive().max(20).default(4),
     maxPagesPerAccount: z.number().int().positive().default(25),
-    /**
-     * The cost ceiling. Measured: a low-selectivity keyword run matched 9 tweets out of
-     * 10,527 fetched and spent 518 requests / 91 MB getting there. Without a budget, run
-     * cost is bounded only by how many accounts exist.
-     */
+    /** Without this, a low-selectivity run costs whatever the account frontier costs. */
     maxRequests: z.number().int().positive().default(500),
     maxAccounts: z.number().int().positive().default(50),
     expansionDepth: z.number().int().min(0).max(2).default(1),
     maxSessions: z.number().int().positive().max(50).default(5),
   })
-  /**
-   * Brief §4: a run needs a *target*. `hashtags` is not one — it is a post-filter over
-   * the timelines a target produced, so a hashtags-only run has nothing to fetch from.
-   */
+  /** `hashtags` is a post-filter, not a target: on its own there is nothing to fetch. */
   .refine(
     (input) =>
       (input.fromUsers?.length ?? 0) > 0 ||

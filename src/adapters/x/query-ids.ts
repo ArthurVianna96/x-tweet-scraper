@@ -2,16 +2,14 @@ import type { HttpClient } from '../http/client.js';
 import { BUNDLE_PAGE } from './constants.js';
 
 /**
- * GraphQL `queryId`s rotate with every X frontend deploy — three distinct bundle
- * hashes were observed across three days of development (`main.e4aca26a.js` →
- * `main.4f5b42da.js` → `main.b07c4c6a.js`), one of them within a single afternoon.
- * Hardcoding them guarantees a silent 404 on some future Tuesday, so we read them at
- * runtime from the logged-out bundle and cache them for the run (SPEC.md §2).
+ * GraphQL `queryId`s rotate with every X frontend deploy, sometimes more than once a day,
+ * so hardcoding them guarantees a silent 404 later. They are read at runtime from the
+ * logged-out bundle and cached for the run.
  */
 export interface OperationMeta {
   readonly queryId: string;
   readonly operationName: string;
-  /** `featureSwitches` from the bundle. X rejects calls that omit a required flag. */
+  /** X rejects calls that omit a required flag. */
   readonly features: Readonly<Record<string, boolean>>;
   readonly fieldToggles: Readonly<Record<string, boolean>>;
 }
@@ -20,10 +18,8 @@ export type OperationCatalog = ReadonlyMap<string, OperationMeta>;
 
 const BUNDLE_URL_PATTERN = /https:\/\/abs\.twimg\.com\/responsive-web\/client-web[^"]*\.js/g;
 
-/**
- * Webpack emits each operation as its own module:
- *   `e.exports={queryId:"…",operationName:"…",metadata:{featureSwitches:[…],fieldToggles:[…]}}`
- */
+/** Webpack emits each operation as its own module, shaped like:
+ *   `e.exports={queryId:"…",operationName:"…",metadata:{featureSwitches:[…],…}}` */
 const OPERATION_PATTERN = /queryId:"([^"]+)",operationName:"([^"]+)"/g;
 
 export function parseOperations(bundleSource: string): OperationCatalog {
@@ -79,12 +75,8 @@ export async function fetchOperationCatalog(
 }
 
 /**
- * Resolves operations for the run, with exactly one refresh allowed.
- *
- * A 404 from a known-permitted operation has two possible causes: X redeployed and our
- * cached queryId is stale, or X has gated the operation. We refresh once to rule out the
- * first; a second 404 means the second, which is fatal and must not be retried in a loop
- * (SPEC.md §2).
+ * One refresh allowed per run. A 404 means either a stale queryId after an X deploy or a
+ * newly gated operation; refreshing once rules out the first, and a second 404 is fatal.
  */
 export class QueryIdResolver {
   private catalog: OperationCatalog | null = null;
@@ -113,7 +105,7 @@ export class QueryIdResolver {
     return meta;
   }
 
-  /** @returns false when the refresh budget is spent — the caller must treat this as fatal. */
+  /** @returns false when the refresh budget is spent, which the caller treats as fatal. */
   async refresh(): Promise<boolean> {
     if (this.refreshed) return false;
     this.refreshed = true;
@@ -123,8 +115,7 @@ export class QueryIdResolver {
   }
 
   private async load(): Promise<CatalogFetchResult> {
-    // Collapse concurrent cold starts: N parallel account chains must not each pull a
-    // ~10 MB bundle through the proxy.
+    // Collapse concurrent cold starts, or N chains each pull the bundle through the proxy.
     this.inFlight ??= fetchOperationCatalog(this.http, this.headersFor()).finally(() => {
       this.inFlight = null;
     });
@@ -136,7 +127,7 @@ export class QueryIdResolver {
   }
 }
 
-/** Brace-match forward from `start` to return one balanced `{…}` literal. */
+/** Brace-match forward from `start` for one balanced `{…}` literal. */
 function matchBalancedObject(source: string, start: number): string | null {
   let depth = 0;
   for (let i = start; i < source.length; i++) {

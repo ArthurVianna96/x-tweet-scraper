@@ -11,10 +11,10 @@ import {
 import { ResultSink, resumePushCount } from './result-sink.js';
 
 /**
- * The suite the brief requires (§7): "a free user requesting 1000 results still gets 10."
+ * The required guarantee: a free user asking for 1000 results still gets 10.
  *
  * Everything here is offline and platform-free. The only seam is constructor injection
- * (SPEC.md §8) — no module mocking, no Apify, no network.
+ * — no module mocking, no Apify, no network.
  */
 
 interface Item {
@@ -54,7 +54,7 @@ function pagedSource(opts: { pages: number; pageSize: number }) {
 const acceptAll = () => true;
 const keyOf = (item: Item) => item.id;
 
-describe('free-tier cap (brief §6, §7 — required)', () => {
+describe('free-tier cap', () => {
   it('gives a free user exactly 10 items when they ask for 1000', async () => {
     const entitlement = await resolveEntitlement(async () => ({ paid: false }));
     const dataset = fakeDataset();
@@ -89,7 +89,7 @@ describe('free-tier cap (brief §6, §7 — required)', () => {
 
   it('stops the crawl, not just the output — one page fetched, generator closed', async () => {
     const dataset = fakeDataset();
-    // 20 tweets per page is the measured `UserTweets` page size (SPEC.md §6).
+    // 20 tweets per page is the measured `UserTweets` page size.
     const source = pagedSource({ pages: 100, pageSize: 20 });
 
     const sink = new ResultSink<Item>({ cap: FREE_TIER_CAP, push: dataset.push });
@@ -117,7 +117,7 @@ describe('free-tier cap (brief §6, §7 — required)', () => {
   });
 
   it('does not overshoot when parallel account chains push concurrently', async () => {
-    // SPEC.md §4.3: the check-then-increment must not straddle an await. This test fails
+    // the spec: the check-then-increment must not straddle an await. This test fails
     // if `this.pushed++` is moved below `await this.opts.push(item)`.
     const dataset = fakeDataset();
     const slowPush = async (item: Item) => {
@@ -133,7 +133,7 @@ describe('free-tier cap (brief §6, §7 — required)', () => {
   });
 });
 
-describe('an unverified run is bounded on cost as well as on results (SPEC.md §4.3)', () => {
+describe('an unverified run is bounded on cost as well as on results', () => {
   it('lowers the request budget in proportion to what the run may return', async () => {
     // The push cap stops at N *matches*. A low-selectivity search never reaches N, so the
     // cap never engages: measured, a free keyword run spent 328 requests and 10 guest
@@ -163,7 +163,7 @@ describe('an unverified run is bounded on cost as well as on results (SPEC.md §
   });
 });
 
-describe('free-tier cap survives resume (SPEC.md §4.5)', () => {
+describe('free-tier cap survives resume', () => {
   it('pushes 0 more after a migration that already delivered the cap', async () => {
     const dataset = fakeDataset();
 
@@ -223,7 +223,7 @@ describe('free-tier cap survives resume (SPEC.md §4.5)', () => {
   });
 });
 
-describe('entitlement resolution fails closed (SPEC.md §4.4)', () => {
+describe('entitlement resolution fails closed', () => {
   const cases: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
     [
       'lookup throws',
@@ -259,7 +259,7 @@ describe('entitlement resolution fails closed (SPEC.md §4.4)', () => {
     expect(effectiveCap(entitlement, 1000)).toBe(1000);
   });
 
-  it('separates "verified free" from "could not verify" for alerting (§4.6)', async () => {
+  it('separates "verified free" from "could not verify" for alerting', async () => {
     const verified = await resolveEntitlement(async () => ({ paid: false }));
     const unverified = await resolveEntitlement(async () => {
       throw new Error('502 from key-value store');

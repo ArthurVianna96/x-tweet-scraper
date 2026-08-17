@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { backoffDelayMs, classifyStatus, classifyTransportError } from './errors.js';
 
-describe('error taxonomy (SPEC.md §5.2)', () => {
+describe('error taxonomy', () => {
   it('rotates on 429 rather than waiting out the window', () => {
     // The 15-minute limit belongs to the *token*, and a token costs ~200ms to mint.
     // Sleeping instead of rotating is the largest throughput mistake available here.

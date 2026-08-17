@@ -7,7 +7,7 @@ import { QueryIdResolver } from './query-ids.js';
 import { SessionPool } from './session.js';
 
 /**
- * Resilience (brief §7): "the run must not hard-crash on a single 429 or 403."
+ * Resilience: "the run must not hard-crash on a single 429 or 403."
  *
  * Everything is offline. The transport is a scripted list of responses, so each failure
  * mode is exercised deterministically rather than hoped for.
@@ -57,7 +57,7 @@ function harness(script: (HttpResponse | Error)[]) {
   return { client, pool, queryIds, graphqlUrls };
 }
 
-describe('XClient resilience (SPEC.md §5.2)', () => {
+describe('XClient resilience', () => {
   it('survives a 429 by rotating to a fresh triple, not by waiting', async () => {
     const { client, pool } = harness([status(429), ok({ data: { ok: true } })]);
 
@@ -153,7 +153,7 @@ describe('XClient resilience (SPEC.md §5.2)', () => {
  * "Client network socket disconnected before secure TLS connection was established"
  * during the queryId bundle fetch. The bundle fetch and the guest-token mint are
  * ordinary HTTP over the same paid proxy, and they ran *outside* the retry loop, so a
- * single transport blip failed the whole run — which brief §3 and §7 forbid.
+ * single transport blip failed the whole run — which the spec and the spec forbid.
  */
 describe('cold-start transport failures are retried, not fatal', () => {
   /** Fails the first `failures` attempts at `match`, then serves normally. */

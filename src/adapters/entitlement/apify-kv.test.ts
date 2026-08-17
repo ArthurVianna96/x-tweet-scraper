@@ -118,7 +118,7 @@ describe('resolving who is running the Actor', () => {
     const { client } = fakeClient({ meResult: async () => ({ id: 'u1' }) });
 
     // An unprovisioned user is a definite free user, which is a different signal from a
-    // failed lookup (SPEC.md §4.6).
+    // failed lookup.
     await expect(
       createEntitlementLookup({ client, storeId: 'store', hmacKey: HMAC })(),
     ).resolves.toBeNull();

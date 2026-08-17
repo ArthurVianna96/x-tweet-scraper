@@ -5,18 +5,14 @@ import { normalizeTweet } from './normalizer.js';
 import { fetchTweetById } from './operations.js';
 
 /**
- * The by-id surface as a source (brief §2a): tweet ids in, normalized tweets out.
- *
- * It is a generator for the same reason the crawl is one — nothing is fetched until the
- * consumer pulls, so the free-tier cap stops the *fetching* rather than truncating the
- * output (SPEC.md §4.3). A free user who supplies 1,000 ids pays for 10 requests, not
- * 1,000.
+ * Tweet ids in, normalized tweets out. A generator for the same reason the crawl is one:
+ * nothing is fetched until the consumer pulls, so the cap stops the fetching.
  */
 
 export interface HydrateOptions {
   readonly client: XClient;
   readonly tweetIds: readonly string[];
-  /** Shared with the crawl: a hard ceiling on X requests for the whole run. */
+  /** Shared with the crawl: a ceiling on X requests for the whole run. */
   readonly maxRequests?: number;
   readonly now?: () => Date;
   readonly onEvent?: (event: HydrateEvent) => void;
@@ -29,7 +25,7 @@ export type HydrateEvent =
 export interface HydrateStats {
   requested: number;
   hydrated: number;
-  /** Ids X returned nothing for: deleted, suspended author, protected, or never existed. */
+  /** Deleted, suspended, protected, or never existed. */
   missing: number;
 }
 
@@ -39,8 +35,7 @@ export class TweetHydrator {
   constructor(private readonly opts: HydrateOptions) {}
 
   async *tweets(): AsyncGenerator<Tweet> {
-    // Ids repeat in hand-written input more often than handles do, and a duplicate is a
-    // wasted request that the global seen-set would discard anyway.
+    // A repeated id is a wasted request the seen-set would discard anyway.
     const ids = [...new Set(this.opts.tweetIds.map((id) => id.trim()).filter(isTweetId))];
     this.stats.requested = ids.length;
 
@@ -51,8 +46,7 @@ export class TweetHydrator {
       try {
         raw = await fetchTweetById(this.opts.client, id);
       } catch (err) {
-        // One dead id never fails a run of many — the same rule the crawl applies to
-        // one dead account (brief §11).
+        // One dead id never fails a run of many.
         if (err instanceof TargetUnavailableError) {
           this.stats.missing++;
           this.opts.onEvent?.({ type: 'missing', tweetId: id, reason: err.kind });
@@ -84,7 +78,7 @@ export class TweetHydrator {
   }
 }
 
-/** Snowflake ids are decimal digits. Anything else is a typo, not a tweet. */
+/** Anything that is not decimal digits is a typo, not a tweet id. */
 function isTweetId(value: string): boolean {
   return /^\d+$/.test(value);
 }

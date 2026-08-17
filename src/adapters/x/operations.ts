@@ -11,26 +11,17 @@ import {
 } from './timeline.js';
 
 /**
- * The three guest-reachable surfaces the Actor is built on (brief §2a): tweets by author,
- * a profile by handle, and a single tweet by id. Of the 23 GraphQL operations probed,
- * five are reachable with guest auth and these carry all the data we need.
- * `npm run probe` re-derives that matrix; `docs/README-data-source.md` §2 records it.
+ * The three surfaces X leaves open to a guest token: an author's tweets, a profile by
+ * handle, and one tweet by id. `npm run probe` re-derives which operations are reachable.
  */
 
-/**
- * A profile, in exactly §5's `author` shape plus what the crawl needs to page it.
- *
- * `id` and `username` narrow their `TweetAuthor` counterparts to non-null: the call
- * throws without an id, and `username` falls back to the handle we asked for.
- */
+/** `id` and `username` are non-null here: the call throws without an id. */
 export interface XProfile extends TweetAuthor {
   readonly id: string;
   readonly username: string;
-  /** Not a §5 field. A protected account is readable as a profile but not as a timeline. */
+  /** A protected account is readable as a profile but not as a timeline. */
   readonly protected: boolean;
 }
-
-/** The profile surface (brief §2a): handle → the §5 `author` block. */
 export async function fetchUserProfile(client: XClient, handle: string): Promise<XProfile> {
   const screenName = handle.replace(/^@/, '');
   const payload = await client.call(
@@ -58,12 +49,8 @@ export async function fetchUserProfile(client: XClient, handle: string): Promise
 }
 
 /**
- * The by-id surface (brief §2a): one tweet, fully hydrated.
- *
- * The result sits at `data.tweetResult.result` and is the same object a timeline entry
- * carries, so `normalizeTweet` reads it unchanged — including the retweet and note_tweet
- * paths. Returns `null` when X has no such tweet (deleted, or an id that never existed),
- * because one dead id must not fail a run of many.
+ * The result is the same object a timeline entry carries, so `normalizeTweet` reads it
+ * unchanged. `null` when X has no such tweet, so one dead id cannot fail a run of many.
  */
 export async function fetchTweetById(client: XClient, tweetId: string): Promise<unknown | null> {
   const payload = await client.call(
@@ -82,11 +69,7 @@ export async function fetchTweetById(client: XClient, tweetId: string): Promise<
   return result === undefined ? null : unwrapVisibility(result);
 }
 
-/**
- * `count: 100` is silently ignored — X serves ~20 tweets per page regardless, which is
- * the cost unit the whole concurrency design is built on (SPEC.md §6). We ask for 20 so
- * the request describes what it actually gets.
- */
+/** X ignores anything larger and serves ~20 per page regardless. */
 export const USER_TWEETS_PAGE_SIZE = 20;
 
 export async function fetchUserTweetsPage(
@@ -118,14 +101,9 @@ export interface PageInfo {
 }
 
 /**
- * Lazily pages one account's timeline. Nothing is fetched until the consumer pulls, so
- * the free-tier cap stops the *crawl*, not just the output (SPEC.md §4.3).
- *
- * The stop conditions are structural rather than declarative, because X's own
- * `TimelineTerminateTimeline` instruction is unreliable here — see
- * `timeline.ts#isBottomTerminated` for the measurement. We stop when the data says we
- * are done: no cursor, an empty page, a cursor that did not advance, or a page that
- * contained nothing we had not already seen.
+ * Lazy: nothing is fetched until the consumer pulls, so the cap stops the crawl and not
+ * merely its output. Stops on structural signals rather than on X's own terminate
+ * instruction, which `isBottomTerminated` explains.
  */
 export async function* streamUserTweets(
   client: XClient,
@@ -148,11 +126,8 @@ export async function* streamUserTweets(
       return id === null || !seenOnThisAccount.has(id);
     });
 
-    /**
-     * Reported *before* yielding, because a page that was fetched has been paid for even
-     * if the consumer stops halfway through it. Reporting after the loop undercounts
-     * every run that ends at the free-tier cap — which is every free run.
-     */
+    // Reported before yielding: a fetched page is paid for even if the consumer stops
+    // partway through it, which is what every capped run does.
     onPage?.({
       cursor: result.nextCursor,
       count: result.results.length,
@@ -168,7 +143,7 @@ export async function* streamUserTweets(
 
     if (result.nextCursor === null || result.nextCursor === cursor) return;
     if (result.results.length === 0) return;
-    // A full page we have already seen means the cursor is cycling, not advancing.
+    // A page of nothing new means the cursor is cycling rather than advancing.
     if (fresh.length === 0) return;
 
     cursor = result.nextCursor;

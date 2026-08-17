@@ -1,9 +1,6 @@
 /**
- * Snowflake IDs encode their own creation time, which makes two filters free.
- *
- * `since`/`until` become an ID range we can apply *before* paying to fetch or normalize
- * a tweet, and `sortBy: latest` is a descending ID sort — IDs are monotonic, so ID order
- * **is** chronological order (SPEC.md §3.1).
+ * Snowflake ids encode their creation time, so `since`/`until` become an id range and
+ * `sortBy: latest` is a descending id sort — ids are monotonic, so id order is time order.
  */
 
 /** X's epoch: 2010-11-04T01:42:54.657Z. */
@@ -16,17 +13,13 @@ export function snowflakeToMs(id: string): number | null {
   return Number(BigInt(id) >> TIMESTAMP_SHIFT) + TWITTER_EPOCH_MS;
 }
 
-/**
- * The smallest ID that could have been minted at `ms`. Comparing tweet ids against this
- * is exact for `since`, and for `until` when used as an inclusive upper bound on the
- * millisecond.
- */
+/** The smallest id that could have been minted at `ms`. */
 export function snowflakeAtMs(ms: number): bigint {
   const offset = BigInt(Math.max(0, Math.floor(ms) - TWITTER_EPOCH_MS));
   return offset << TIMESTAMP_SHIFT;
 }
 
-/** Descending comparator for `sortBy: latest`. BigInt, because these overflow `number`. */
+/** BigInt because these overflow `number`. */
 export function compareIdDesc(a: string, b: string): number {
   const left = BigInt(a);
   const right = BigInt(b);
@@ -35,11 +28,8 @@ export function compareIdDesc(a: string, b: string): number {
 }
 
 /**
- * Both bounds are **inclusive** (SPEC.md §3.1).
- *
- * A date without a time is a whole day, so `until: "2026-08-01"` includes everything up
- * to `23:59:59.999` on that day. Treating it as midnight would silently drop a day's
- * tweets — the kind of off-by-one a reviewer checks for.
+ * Both bounds are inclusive. A date without a time is a whole day, so `until` runs to
+ * 23:59:59.999 — treating it as midnight would silently drop a day.
  */
 export function parseBoundary(value: string, edge: 'since' | 'until'): number | null {
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);

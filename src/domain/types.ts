@@ -1,9 +1,6 @@
 /**
- * The output contract (brief §5, SPEC.md §3.2).
- *
- * Every field is always present. Absent values are `null` — never `undefined`,
- * never omitted — so a consumer can rely on a stable column set across the whole
- * dataset. `null` in these types is therefore load-bearing, not laziness.
+ * The output contract. Every field is always present and absent values are `null`, never
+ * omitted, so the dataset keeps a stable column set.
  */
 
 export type MediaKind = 'photo' | 'video' | 'animated_gif';

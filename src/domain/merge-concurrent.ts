@@ -1,17 +1,10 @@
 /**
- * Merge N async sources, pulling at most `concurrency` of them at a time.
+ * Merge N async sources, pulling at most `concurrency` at a time. A cursor chain is
+ * sequential — page 2 needs page 1's cursor — so accounts are the only axis to
+ * parallelise on.
  *
- * This is the parallelism model from SPEC.md §6: a cursor chain is inherently
- * sequential — page 2 needs page 1's cursor — so the only place to parallelise is
- * *across accounts*. Each account is one lazy chain; this merges them.
- *
- * Two properties matter and both are tested:
- *
- * 1. **Lazy.** Nothing is fetched until the consumer pulls. That is what lets the
- *    free-tier cap stop the crawl rather than merely truncate the output (§4.3).
- * 2. **Unwinds.** When the consumer `break`s, every in-flight source is returned, so no
- *    orphan chain keeps paging in the background and spending the request budget on
- *    results nobody will read.
+ * Lazy, and unwinds: when the consumer breaks, every in-flight source is returned so no
+ * orphan chain keeps paging in the background.
  */
 export async function* mergeConcurrent<T>(
   sources: Iterable<() => AsyncIterator<T>>,

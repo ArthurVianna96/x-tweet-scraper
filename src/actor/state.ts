@@ -4,22 +4,19 @@ import { z } from 'zod';
 import type { Tweet } from '../domain/types.js';
 
 /**
- * Checkpointed run state (SPEC.md §5.3), for `migrating` and for resurrects.
+ * Checkpointed run state, for migrations and resurrects.
  *
- * **This store belongs to the runner, not to us.** Inside a run, `APIFY_TOKEN` is the
- * *runner's* token, so everything written here is attacker-writable. That is fine for
- * cursors and the seen-set — the worst outcome of tampering is that the user re-scrapes
- * and pays for it — and specifically **not** fine for the pushed counter, which is why
- * `resumePushCount` floors whatever is read here on `dataset.itemCount` (§4.5).
- *
- * The `pushed` value below is therefore a hint, never an authority.
+ * This store belongs to the runner, so everything here is attacker-writable. Fine for
+ * cursors and the seen-set, where tampering only costs the user a re-scrape. Not fine for
+ * `pushed`, which is why `resumePushCount` floors it on the dataset's own count — treat
+ * the value below as a hint, never an authority.
  */
 export const STATE_KEY = 'CRAWL_STATE';
 
 /** Bounded so a long run cannot grow the checkpoint without limit. */
 const MAX_SEEN_KEYS = 50_000;
 
-/** Above this, the buffer is dropped from the checkpoint rather than risking the record. */
+/** Above this the buffer is dropped rather than risking the whole record. */
 const MAX_BUFFERED_RESULTS = 5_000;
 
 export interface RunState {
@@ -33,8 +30,7 @@ const RunStateSchema = z.object({
   pushed: z.number().int().nonnegative().catch(0),
   cursors: z.record(z.string()).catch({}),
   seen: z.array(z.string()).catch([]),
-  // Buffered results are re-validated loosely: they were produced by our own normalizer,
-  // and a malformed entry costs one bad row, not a bypass.
+  // Loose: these came from our own normalizer, and a bad entry costs one row.
   buffer: z.array(z.unknown()).catch([]),
 });
 
@@ -55,8 +51,7 @@ export async function loadState(): Promise<RunState> {
       buffer: parsed.data.buffer as Tweet[],
     };
   } catch (err) {
-    // A checkpoint we cannot read is not a reason to fail the run — it is a reason to
-    // start clean. The cap is protected by `dataset.itemCount` regardless.
+    // An unreadable checkpoint is a reason to start clean, not to fail the run.
     log.warning('could not read checkpoint, starting fresh', { message: (err as Error).message });
     return EMPTY;
   }
@@ -64,11 +59,8 @@ export async function loadState(): Promise<RunState> {
 
 export async function persistState(state: RunState): Promise<void> {
   try {
-    /**
-     * A key-value record has a size limit, and the buffer is the only unbounded part of
-     * this state. Dropping it costs a re-fetch after a migration; exceeding the limit
-     * would fail the checkpoint entirely and lose the cursors too.
-     */
+    // The buffer is the only unbounded part of this state. Dropping it costs a re-fetch;
+    // exceeding the record size limit would lose the cursors too.
     const buffer = state.buffer.length > MAX_BUFFERED_RESULTS ? [] : state.buffer;
     if (buffer.length !== state.buffer.length) {
       log.warning('checkpoint dropped the result buffer — too large to persist', {

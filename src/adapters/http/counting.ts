@@ -1,12 +1,9 @@
 import type { HttpClient } from './client.js';
 
 /**
- * Wraps the transport to count everything that crosses the wire.
- *
- * It sits at the composition root rather than inside `XClient` on purpose: the ~10 MB
- * frontend bundle we parse for queryIds and the search-engine lookup both go through a
- * proxy and both cost money. A byte counter that only saw GraphQL calls would understate
- * proxy cost by more than it reported (SPEC.md §7).
+ * Counts everything crossing the wire. It wraps the transport rather than living inside
+ * `XClient` because the queryId bundle and the seed lookup also cross the paid proxy, and
+ * a counter that saw only GraphQL calls would understate cost by more than it reported.
  */
 export interface TransferStats {
   requests: number;

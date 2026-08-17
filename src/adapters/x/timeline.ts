@@ -1,7 +1,7 @@
 import { asArray, asRecord, asString, path, typenameOf } from './json.js';
 
 /**
- * Timeline extraction (SPEC.md §3.3) — **by path, never by type**.
+ * Timeline extraction, by path and never by type.
  *
  * ```
  * data.user.result.timeline.timeline.instructions[]
@@ -12,11 +12,9 @@ import { asArray, asRecord, asString, path, typenameOf } from './json.js';
  *             └─ "TimelineTimelineCursor" → cursorType "Bottom" → next page
  * ```
  *
- * The tempting alternative — walk the payload and collect every `__typename === "Tweet"` —
- * is wrong, and expensively so. A tweet's `retweeted_status_result` and
- * `quoted_status_result` are structurally identical to a top-level tweet, so recursion
- * turned a 20-entry page into **32 items** in testing: the same content emitted two and
- * three times. Duplicate results are something the brief explicitly grades (§7).
+ * Walking the payload for every `__typename === "Tweet"` looks equivalent and is not: a
+ * tweet's `retweeted_status_result` and `quoted_status_result` are structurally identical
+ * to a top-level tweet, so recursion emits the same content two and three times.
  */
 
 export interface TimelinePage {
@@ -24,27 +22,16 @@ export interface TimelinePage {
   readonly results: readonly unknown[];
   /** Cursor for the next page, or `null` when the timeline is exhausted. */
   readonly nextCursor: string | null;
-  /**
-   * X sent `TimelineTerminateTimeline` with a Bottom-ward direction.
-   *
-   * **Reported, not obeyed** — see `isBottomTerminated`. Kept because it is useful in
-   * logs and because a future X change might make it meaningful again.
-   */
+  /** Reported, not obeyed — see `isBottomTerminated`. Useful in logs. */
   readonly terminated: boolean;
 }
 
 /**
- * `TimelineTerminateTimeline` carries a `direction`, and the obvious reading —
- * "terminated means stop paging" — is wrong.
+ * "Terminated means stop paging" is the obvious reading and it is wrong: X emits this on
+ * every page of a paginated timeline while the bottom cursor keeps returning fresh
+ * tweets. Obeying it costs most of the recall, silently — nothing errors.
  *
- * X emits `TopAndBottom` on *every* page of a paginated timeline while the bottom cursor
- * keeps returning fresh tweets. Measured 2026-08-17: obeying it truncates `@apify` from
- * 92 unique tweets to 19, a 79% recall loss that looks completely healthy in the logs
- * because nothing errored.
- *
- * The flag is therefore reported and not obeyed. The authoritative stop conditions are
- * structural: no bottom cursor, an empty page, a cursor that does not advance, or a page
- * of nothing new (see `streamUserTweets`).
+ * So it is reported, not obeyed, and the real stop conditions are structural.
  */
 export function isBottomTerminated(direction: string | null): boolean {
   if (direction === null) return true; // no direction stated: the conservative reading
@@ -72,9 +59,8 @@ export function extractTimelinePage(payload: unknown): TimelinePage {
       continue;
     }
 
-    // Skips `TimelinePinEntry` along with everything else, and deliberately: a pinned
-    // tweet is an arbitrarily old tweet served at the top of the timeline, so emitting
-    // it would silently corrupt `sortBy: latest` ordering.
+    // Skips `TimelinePinEntry` deliberately: a pinned tweet is an arbitrarily old tweet
+    // served at the top, and emitting it would corrupt `sortBy: latest`.
     if (type !== 'TimelineAddEntries') continue;
 
     for (const entry of asArray(path(instruction, 'entries'))) {
@@ -88,7 +74,7 @@ export function extractTimelinePage(payload: unknown): TimelinePage {
       }
 
       if (entryType === 'TimelineTimelineModule') {
-        // Conversation modules: several tweets under one entry, same depth rule.
+        // Conversation modules hold several tweets under one entry.
         for (const item of asArray(path(content, 'items'))) {
           const result = path(item, 'item', 'itemContent', 'tweet_results', 'result');
           if (result !== undefined) results.push(unwrapVisibility(result));
@@ -106,12 +92,7 @@ export function extractTimelinePage(payload: unknown): TimelinePage {
   return { results, nextCursor, terminated };
 }
 
-/**
- * X has served this timeline under `timeline_v2` and `timeline` at different times, and
- * suspended or protected accounts return a `UserUnavailable` result with no timeline at
- * all. Probing both shapes costs nothing and removes a whole class of silent zero-result
- * runs.
- */
+/** X has served this under both `timeline` and `timeline_v2`; probing both costs nothing. */
 function findInstructions(payload: unknown): unknown {
   const user = path(payload, 'data', 'user', 'result');
   return (
@@ -122,11 +103,7 @@ function findInstructions(payload: unknown): unknown {
   );
 }
 
-/**
- * `TweetWithVisibilityResults` wraps the real tweet one level down alongside a
- * limited-visibility notice. Not seen in sampling, but known to occur, and reading
- * straight through it would emit an object with no `legacy` and therefore a null row.
- */
+/** This wrapper holds the real tweet one level down, beside a visibility notice. */
 export function unwrapVisibility(result: unknown): unknown {
   if (typenameOf(result) === 'TweetWithVisibilityResults') {
     return path(result, 'tweet') ?? result;
@@ -143,7 +120,7 @@ function readCursor(entry: unknown): string | null {
     asString(content['itemType']) === 'TimelineTimelineCursor';
   if (!isCursor) return null;
 
-  // "Bottom" is the next-page direction; "Top" walks backwards into newer tweets.
+  // "Bottom" pages forward; "Top" walks back into newer tweets.
   if (asString(content['cursorType']) !== 'Bottom') return null;
   return asString(content['value']);
 }

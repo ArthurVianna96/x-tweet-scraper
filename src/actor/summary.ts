@@ -6,25 +6,22 @@ import type { HydrateStats } from '../adapters/x/hydrate.js';
 import type { XClientStats } from '../adapters/x/graphql.js';
 
 /**
- * The run summary (SPEC.md §7), written to `OUTPUT` and emitted as a structured log.
- *
- * It is designed so a reviewer can **re-derive** the performance claims rather than take
- * them on trust: requests, pages, bytes, selectivity, tokens consumed and the 429 count
- * are all reported, so the cost-per-1k figure can be checked against its inputs.
+ * Written to `OUTPUT` and logged. Reports the inputs to every performance claim —
+ * requests, pages, bytes, selectivity, tokens, errors — so the numbers can be re-derived.
  */
 
 export interface RunSummary {
   readonly requested: number;
   readonly fetched: number;
   readonly pushed: number;
-  /** Request ceiling actually applied — lowered for unverified runs (SPEC.md §4.3). */
+  /** The ceiling actually applied, which is lowered for unverified runs. */
   readonly requestBudget: number;
 
   readonly limited: boolean;
   readonly reason: string | null;
   readonly cap: number | null;
 
-  /** The by-id surface (brief §2a): ids asked for, hydrated, and not found. */
+  /** Ids asked for, hydrated, and not found. */
   readonly hydratedById: HydrateStats;
 
   readonly discoveryStrategy: string;
@@ -39,7 +36,7 @@ export interface RunSummary {
   readonly duplicatesDropped: number;
 
   readonly accountsSkipped: CrawlStats['accountsSkipped'];
-  /** True when the run stopped on its request budget rather than on results or exhaustion. */
+  /** Stopped on the request budget rather than on results or exhaustion. */
   readonly budgetExhausted: boolean;
   readonly tokensConsumed: number;
   /** GraphQL calls to X. */
@@ -59,11 +56,7 @@ export interface CostEstimate {
   readonly usd: number;
 }
 
-/**
- * Apify list prices at the time of writing. They are constants rather than magic numbers
- * precisely so a reader can see what the USD figure assumes and correct it for their own
- * plan — the number is only meaningful alongside its assumptions.
- */
+/** Apify list prices, named so the USD figure's assumptions are visible and correctable. */
 export const PRICING = {
   usdPerResidentialProxyGB: 12.5,
   usdPerComputeUnit: 0.4,
@@ -108,8 +101,7 @@ export function buildRunSummary(inputs: SummaryInputs): RunSummary {
     pagesFetched: crawl.pagesFetched,
 
     filteredOut: collect.filteredOut,
-    // What fraction of everything we paid to fetch actually survived the filters. This
-    // is the number that determines request budget, not the target result count.
+    // The fraction of what we paid to fetch that survived the filters.
     selectivity: collect.fetched === 0 ? 0 : round(pushed / collect.fetched, 4),
     duplicatesDropped: collect.duplicatesDropped,
 
@@ -132,16 +124,11 @@ export function buildRunSummary(inputs: SummaryInputs): RunSummary {
 }
 
 /**
- * Extrapolated from this run's measured bytes and wall clock, not from a guess. With
- * nothing pushed there is nothing to extrapolate from, so the estimate is zeroed rather
- * than divided by zero.
+ * Extrapolated from this run's measured bytes and wall clock.
  *
- * **The extrapolation is linear, and part of a run's cost is not.** Cold start — the
- * ~1.8 MB queryId bundle and the first guest token — is paid once regardless of run size,
- * so a small run spreads it over few results and overstates the per-1k figure. Measured:
- * the same native path reports ~$2.19/1k on a 10-item free run and ~$0.41/1k on a
- * 100-item run. Treat the number as reliable only for runs large enough to amortise cold
- * start, and read `bytesTransferred` alongside it.
+ * The extrapolation is linear and part of the cost is not: cold start is paid once
+ * regardless of run size, so a small run overstates the per-1k figure. Read it alongside
+ * `bytesTransferred`, and only trust it for runs large enough to amortise cold start.
  */
 export function estimateCost(inputs: {
   bytes: number;
@@ -154,7 +141,7 @@ export function estimateCost(inputs: {
   const scale = 1000 / inputs.pushed;
   const proxyGB = (inputs.bytes * scale) / 1_000_000_000;
 
-  // An Apify compute unit is 1 GB of memory for 1 hour.
+  // A compute unit is 1 GB of memory for 1 hour.
   const memoryGB = (inputs.memoryMbytes ?? 1024) / 1024;
   const computeUnits = memoryGB * ((inputs.wallClockMs * scale) / 3_600_000);
 

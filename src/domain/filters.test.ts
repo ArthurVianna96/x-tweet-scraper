@@ -58,7 +58,7 @@ describe('an unspecified filter is no constraint', () => {
 });
 
 describe('replies and retweets both default to excluded', () => {
-  // §4 states the default only for retweets; we default both to false and document it.
+  // the spec states the default only for retweets; we default both to false and document it.
   it('drops replies unless includeReplies is true', () => {
     const reply = tweet({ isReply: true, inReplyToId: '9' });
     expect(matchesFilters(reply, {})).toBe(false);
@@ -152,7 +152,7 @@ describe('language and verification', () => {
   });
 });
 
-describe('mediaType rulings (SPEC.md §3.1)', () => {
+describe('mediaType rulings', () => {
   it('images matches any tweet with at least one photo, other content allowed', () => {
     expect(matchesFilters(withMedia(photo), { mediaType: 'images' })).toBe(true);
     expect(matchesFilters(withMedia(photo, video), { mediaType: 'images' })).toBe(true);
@@ -182,7 +182,7 @@ describe('mediaType rulings (SPEC.md §3.1)', () => {
   });
 });
 
-describe('since / until are inclusive (SPEC.md §3.1)', () => {
+describe('since / until are inclusive', () => {
   const day = (iso: string) => tweet({ id: idAt(iso) });
 
   it('includes a tweet on the exact since instant', () => {

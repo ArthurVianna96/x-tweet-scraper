@@ -23,7 +23,7 @@ export interface XClientEvent {
 
 export interface XClientStats {
   requests: number;
-  /** Response bytes over the wire — the input to the proxy-cost estimate (SPEC.md §7). */
+  /** Response bytes over the wire — the input to the proxy-cost estimate. */
   bytes: number;
   errors: Record<'429' | '403' | '404' | '5xx' | 'timeout' | 'other', number>;
 }
@@ -40,11 +40,9 @@ export interface XClientOptions {
 }
 
 /**
- * The resilient GraphQL caller: session pool + runtime queryIds + the §5.2 taxonomy,
- * joined in one place so no call site has to know what a 429 means.
- *
- * A single request never fails the run. Exhausting the attempt budget on one account
- * raises `TargetUnavailableError`, which the crawl counts and skips (brief §11).
+ * Session pool, runtime queryIds and the error taxonomy in one place, so no call site has
+ * to know what a 429 means. A single request never fails the run: exhausting the attempt
+ * budget raises `TargetUnavailableError`, which the crawl counts and skips.
  */
 export class XClient {
   readonly stats: XClientStats = {
@@ -65,16 +63,8 @@ export class XClient {
     let last: Classification | null = null;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      /**
-       * Cold start is inside the retry loop, not before it.
-       *
-       * Minting a guest token and fetching the ~1.8 MB queryId bundle are ordinary HTTP
-       * over the same paid proxy as everything else, and they fail the same ways. With
-       * these two calls outside the loop, a single transport blip escaped the taxonomy
-       * and failed the whole run — observed on the platform as "Client network socket
-       * disconnected before secure TLS connection was established" during the bundle
-       * fetch, which brief §3 and §7 rule out (SPEC.md §5.2).
-       */
+      // Inside the loop, not before it: minting a token and fetching the queryId bundle
+      // are ordinary HTTP, and outside the loop a transport blip fails the whole run.
       let session;
       let meta;
       try {
@@ -149,8 +139,8 @@ export class XClient {
           break;
 
         case 'refresh-query-ids': {
-          // One refresh per run buys us the "X redeployed" explanation. After that a
-          // 404 means the target is gone, not that our queryId is stale (§5.2).
+          // One refresh per run explains "X redeployed"; after that a 404 means the
+          // target is gone, not that our queryId is stale.
           const refreshed = await this.opts.queryIds.refresh();
           if (!refreshed) {
             throw context.target === undefined

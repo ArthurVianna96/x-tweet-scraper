@@ -3,16 +3,11 @@
  *
  *   npx tsx src/tools/capture-fixtures.ts elonmusk apify naval paulg
  *
- * The test suite is offline and deterministic (SPEC.md §8), which costs us the ability
- * to notice X changing its response shape — a real limitation, documented in the README
- * rather than papered over. This tool is the mitigation: re-capturing is one command, so
- * a shape change is minutes of work rather than an archaeology project.
+ * The suite is offline, which means it cannot notice X changing its response shape. This
+ * is the mitigation: re-capturing is one command.
  *
- * It saves two kinds of fixture:
- *   - one full raw timeline payload, for the extractor test (entries, modules, cursors,
- *     pinned entry — the structure is the point);
- *   - curated single tweets, one per normalizer edge case, auto-selected by scanning
- *     everything captured. Each is stamped with where it came from.
+ * Note that the committed fixtures were chosen for specific edge cases, so re-capturing
+ * can replace them with tweets that no longer exercise those cases.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -28,7 +23,7 @@ import { extractTimelinePage } from '../adapters/x/timeline.js';
 
 const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../test/fixtures');
 
-/** One predicate per normalizer edge case in SPEC.md §3.2 / §8. */
+/** One predicate per normalizer edge case. */
 const CASES: ReadonlyArray<{ name: string; matches: (tweet: unknown) => boolean }> = [
   {
     name: 'tweet-retweet',
@@ -62,7 +57,7 @@ const CASES: ReadonlyArray<{ name: string; matches: (tweet: unknown) => boolean 
   },
   {
     name: 'tweet-plain',
-    // `mediaType: text_only` means no media *and* no links (SPEC.md §3.1), and a quote
+    // `mediaType: text_only` means no media *and* no links, and a quote
     // is not plain either — this fixture is the one that must match nothing but text.
     matches: (t) =>
       asArray(path(t, 'legacy', 'entities', 'urls')).length === 0 &&
@@ -75,10 +70,8 @@ const CASES: ReadonlyArray<{ name: string; matches: (tweet: unknown) => boolean 
 ];
 
 /**
- * A real timeline page is ~750 KB, most of it repeated author objects. The extractor
- * test cares about *structure* — item entries, conversation modules, both cursors, the
- * pinned entry, the terminate instruction — so we keep one of each kind and drop the
- * rest. Everything retained is verbatim; nothing is synthesised.
+ * A real page is ~750 KB, mostly repeated author objects. The extractor test cares about
+ * structure, so keep one entry of each kind and drop the rest. Nothing is synthesised.
  */
 function trimTimelinePage(raw: unknown, keepEntries = 6): unknown {
   const clone = structuredClone(raw) as Record<string, unknown>;
@@ -140,8 +133,7 @@ async function main(): Promise<void> {
   for (const handle of handles) {
     process.stdout.write(`@${handle}\n`);
     try {
-      // The profile surface's own payload (brief §2a). Saved raw, from the first handle
-      // that answers, because the normalizer test asserts against these exact paths.
+      // The profile payload, saved raw from the first handle that answers.
       if (!profileSaved) {
         await save(
           'user-profile',
@@ -174,14 +166,13 @@ async function main(): Promise<void> {
         const extracted = extractTimelinePage(raw);
         process.stdout.write(`  page ${page}: ${extracted.results.length} tweets\n`);
 
-        // One real payload, kept whole: the extractor test needs the structure, not a
-        // hand-written approximation of it.
+        // Kept whole: the extractor test needs real structure, not an approximation.
         if (!rawPageSaved && extracted.results.length > 0 && extracted.nextCursor !== null) {
           await save('timeline-page', trimTimelinePage(raw));
           rawPageSaved = true;
         }
 
-        // The by-id surface's own payload (brief §2a), from a real id we just saw.
+        // The by-id payload, from a real id we just saw.
         if (!byIdSaved) {
           const firstId = asString(path(extracted.results[0], 'rest_id'));
           if (firstId !== null) {

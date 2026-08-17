@@ -145,7 +145,7 @@ describe('request budget', () => {
   });
 });
 
-describe('graceful degradation (brief §7, §11)', () => {
+describe('graceful degradation', () => {
   it('counts and skips protected, suspended and missing accounts without failing', async () => {
     const client = stubClient({
       protectedHandles: ['locked'],

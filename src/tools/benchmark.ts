@@ -1,23 +1,13 @@
 /**
- * Reproduces the performance numbers reported in the README (brief §8).
+ * Reproduces the performance numbers in the README.
  *
  *   npx tsx src/tools/benchmark.ts native   apify,naval,paulg,dhh,levelsio
  *   npx tsx src/tools/benchmark.ts seeded   "ai agents"
  *
- * **Protocol**, kept from §8 even though the query is substituted:
- *   - the timer starts at the first outbound request of the measured phase;
- *   - it stops at the 100th schema-conforming item;
- *   - cold start is excluded — queryId resolution and the first guest token are warmed
- *     up before the clock starts, because they are once-per-run costs;
- *   - the run must stay clean: any 429 invalidates the measurement.
+ * The clock starts at the first request of the measured phase and stops at the 100th
+ * item. Cold start is warmed up beforehand and excluded, and any 429 invalidates the run.
  *
- * §8's own benchmark query ("a broad keyword, sortBy latest") requires `SearchTimeline`,
- * which is gated for guest tokens — see the README. The substitution is declared rather
- * than hidden, and the diagnostics below are published so the numbers can be re-derived.
- *
- * This harness constructs its own `ResultSink` with an explicit cap. It is a standalone
- * script that never touches the Actor and cannot influence a run: the entitlement gate
- * lives in `actor/main.ts` and is exercised by `domain/free-tier.test.ts`.
+ * Standalone: it builds its own sink with an explicit cap and never touches the gate.
  */
 import { createCountingClient } from '../adapters/http/counting.js';
 import { createGotClient } from '../adapters/http/got-client.js';
@@ -44,7 +34,7 @@ async function main(): Promise<void> {
   const queryIds = new QueryIdResolver(http, () => ({ headers: generateBrowserHeaders() }));
   const xClient = new XClient({ http, pool, queryIds });
 
-  // --- cold start, excluded from the measurement ---------------------------------
+  // Cold start, excluded from the measurement.
   const coldStart = Date.now();
   await queryIds.get('UserTweets');
   await pool.acquire();
@@ -54,8 +44,7 @@ async function main(): Promise<void> {
   let discovery: DiscoveryStrategy;
 
   if (mode === 'seeded') {
-    // The keyword is applied as a filter as well as a seed, because that is what §8's
-    // benchmark actually asks for: a keyword query, not a crawl of related accounts.
+    // The keyword filters as well as seeds: a keyword query, not a crawl of neighbours.
     discovery = new SeededTopicDiscovery({ http, terms: [argument] });
     criteria = { ...criteria, searchTerms: [argument] };
   } else {

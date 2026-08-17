@@ -1,18 +1,13 @@
 /**
- * Provisioning helper: works out which key a user's entitlement record belongs under,
- * and can write it.
+ * Provisioning helper: derives a user's entitlement key and can write the record.
  *
  *   npx tsx src/tools/entitlement-key.ts key <userId>      # print the key only
  *   npx tsx src/tools/entitlement-key.ts grant <userId>    # write { paid: true }
  *   npx tsx src/tools/entitlement-key.ts revoke <userId>   # write { paid: false }
  *   npx tsx src/tools/entitlement-key.ts check <userId>    # read the current record
  *
- * Reads `ENTITLEMENTS_HMAC_KEY`, `ENTITLEMENTS_STORE_ID` and `APIFY_TOKEN` from the
- * environment (see `.env.example`). It derives the key with the *same* function the gate
- * uses, so the two cannot drift.
- *
- * The token here must be **yours**, not a customer's: write access to the entitlements
- * store is the entire authority behind the gate (README §4.2).
+ * Config comes from the environment; see `.env.example`. The token must be yours, not a
+ * customer's — write access to the store is the authority behind the gate.
  */
 import { ApifyClient } from 'apify-client';
 
@@ -81,13 +76,8 @@ async function main(): Promise<void> {
 
   const paid = action === 'grant';
 
-  /**
-   * The record body must not contain the user id, or anything else identifying.
-   *
-   * The store is public-read by design (README §4.2) and the *key* is HMAC'd precisely so
-   * a world-readable store leaks no customer IDs. Putting the plaintext id in the value
-   * would hand back exactly what the HMAC was protecting.
-   */
+  // No user id in the body: the key is HMAC'd so that a public store names nobody, and
+  // putting the id in the value would hand back what the HMAC protects.
   await store.setRecord({ key, value: { paid, updatedAt: new Date().toISOString() } });
 
   process.stdout.write(

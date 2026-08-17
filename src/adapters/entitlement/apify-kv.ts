@@ -3,34 +3,22 @@ import { createHmac } from 'node:crypto';
 import type { ApifyClient } from 'apify-client';
 
 /**
- * Entitlement lookup (SPEC.md §4.1, §4.2). The *decision* lives in
- * `domain/entitlement.ts`; this is only how we obtain the record.
+ * How the entitlement record is obtained; the decision itself is in `domain/entitlement`.
  *
- * Two things here are load-bearing, and both are argued in full in README §4.
- *
- * **Identity comes from the credential, not the claim.** `APIFY_USER_ID` is an
- * environment variable, which brief §6 names as untrusted. Asking the platform "who does
- * this token belong to?" is self-validating: a forged token is either rejected (→ free)
- * or genuinely someone else's (→ correctly returns their entitlement).
- *
- * **The store is public-read on purpose.** Inside a run, `APIFY_TOKEN` belongs to the
- * *runner*, so a private store on our account is unreachable from the runs that need to
- * read it. The authority is therefore *write* access, which stays ours; reads cannot
- * change a verdict, and HMAC'd keys mean a world-readable store names nobody.
+ * Two design points, argued in full in the README. Identity comes from the credential
+ * rather than a claim, because asking the platform who a token belongs to is
+ * self-validating. And the store is public-read on purpose: inside a run `APIFY_TOKEN`
+ * belongs to the runner, so a private store would be unreachable from the runs that need
+ * it. Write access is the authority, and HMAC'd keys mean a world-readable store names
+ * nobody.
  */
 
 export interface EntitlementSourceOptions {
-  /** Authenticated as the runner — which is the only client a run actually has. */
+  /** Authenticated as the runner, which is the only client a run has. */
   readonly client: ApifyClient;
-  /** `username/store-name` or store id of the public entitlements store. */
   readonly storeId: string;
-  /**
-   * Must be a **Secret** env var in the Apify Console. A published Actor's non-secret
-   * environment variables are publicly visible on its detail page, so a plain env var
-   * would publish the authority itself (SPEC.md §4.2).
-   */
+  /** Must be a Secret env var: a published Actor shows non-secret ones on its page. */
   readonly hmacKey: string;
-  /** `Actor.getEnv().actorRunId` — names the run whose owner the API will tell us. */
   readonly actorRunId?: string | undefined;
   readonly timeoutMs?: number;
 }
@@ -49,26 +37,18 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
       'entitlement lookup',
     );
 
-    // A missing record is a definite answer — an unprovisioned user is a free user — so
-    // it resolves to null rather than throwing. Only a *failed* lookup throws.
+    // A missing record is an answer, not a failure: an unprovisioned user is free.
     return record?.value ?? null;
   };
 }
 
 /**
- * Who is running this Actor — **asked of the platform, never read from a claim**.
+ * Asked of the platform, never read from a claim.
  *
- * Two routes, because Apify runs deployed Actors under a scoped token that `/users/me`
- * refuses with "Insufficient permissions". That took the primary route out on the first
- * deployed run, having worked in every local test.
- *
- * The fallback keeps the §4.1 principle intact. `APIFY_ACTOR_RUN_ID` is an untrusted
- * claim, but it only *names* a resource — the answer still comes from the API, which
- * returns the run's real owner. A forged id is refused, because a run-scoped token may
- * read its own run and nothing else, and the verdict fails closed to free.
- *
- * Reading `APIFY_USER_ID` directly stays out: that is a claim with no authority behind
- * it at all.
+ * Two routes because Apify runs deployed Actors under a scoped token that `/users/me`
+ * refuses. The fallback still asks the API rather than trusting the environment: the run
+ * id only names a resource, and a run-scoped token may read its own run and nothing else,
+ * so a forged id is refused and the verdict falls back to free.
  */
 async function resolveRunnerUserId(
   opts: EntitlementSourceOptions,
@@ -98,22 +78,14 @@ async function resolveRunnerUserId(
 }
 
 /**
- * The key a user's entitlement record lives under.
- *
- * Exported because provisioning a paid customer needs the *same* derivation the gate
- * uses — `src/tools/entitlement-key.ts` calls this rather than reimplementing it. Two
- * copies of an HMAC would drift silently, and the failure mode is a paying customer
- * capped at 10 with no error anywhere.
+ * Shared with the provisioning tool so the two cannot drift. A mismatch caps a paying
+ * customer with no error anywhere.
  */
 export function entitlementKeyFor(userId: string, hmacKey: string): string {
   return createHmac('sha256', hmacKey).update(userId).digest('hex');
 }
 
-/**
- * Reads the configuration this lookup needs. Returns `null` when the Actor was deployed
- * without entitlement configuration, which the caller must treat as unverifiable —
- * capped, and flagged as `entitlement_unavailable` rather than silently free.
- */
+/** `null` when the Actor was deployed without entitlement config: unverifiable, not free. */
 export function readEntitlementConfig(
   env: NodeJS.ProcessEnv,
 ): { storeId: string; hmacKey: string } | null {

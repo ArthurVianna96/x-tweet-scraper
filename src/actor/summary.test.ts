@@ -36,7 +36,7 @@ const base = {
   memoryMbytes: 1024,
 };
 
-describe('buildRunSummary (SPEC.md §7)', () => {
+describe('buildRunSummary', () => {
   it('reports selectivity so the request budget can be reasoned about', () => {
     const summary = buildRunSummary(base);
 

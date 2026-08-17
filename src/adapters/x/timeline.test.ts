@@ -16,7 +16,7 @@ describe('extractTimelinePage', () => {
   });
 
   it('emits each tweet exactly once', () => {
-    // The duplicate bug the brief grades (§7): a recursive `__typename === "Tweet"` walk
+    // The duplicate bug: a recursive `__typename === "Tweet"` walk
     // turned a 20-entry page into 32 items, because a tweet's retweeted/quoted originals
     // are structurally identical to a top-level tweet.
     const ids = extractTimelinePage(page).results.map(

@@ -12,7 +12,7 @@ const normalize = (name: string) => {
   return tweet;
 };
 
-describe('retweets (SPEC.md §3.2)', () => {
+describe('retweets', () => {
   const retweet = normalize('tweet-retweet');
   const raw = loadTweet('tweet-retweet') as {
     legacy: {
@@ -77,7 +77,7 @@ describe('long-form posts', () => {
   });
 });
 
-describe('the §5 output contract', () => {
+describe('the output contract', () => {
   const names = [
     'tweet-retweet',
     'tweet-long-form',
@@ -184,7 +184,7 @@ describe('the §5 output contract', () => {
     expect(video.thumbnail).not.toBe(video.url);
   });
 
-  it('treats X’s Business verification as unverified, per §5’s single boolean', () => {
+  it('treats X’s Business verification as unverified, which the schema cannot distinguish', () => {
     const raw = loadTweet('tweet-plain') as {
       core: {
         user_results: {

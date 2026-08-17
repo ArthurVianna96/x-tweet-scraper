@@ -2,15 +2,8 @@ import { compareIdDesc, parseBoundary, snowflakeToMs } from './snowflake.js';
 import type { Tweet } from './types.js';
 
 /**
- * Filter predicates (SPEC.md §3.1, brief §4).
- *
- * Two rules govern everything here:
- *   - **An unspecified filter is no constraint.** Absence never narrows a result set.
- *   - **Filters combine with AND; values within one filter combine with OR.**
- *     `hashtags: ["a","b"]` means "a or b"; adding `minLikes` means "(a or b) and likes ≥ n".
- *
- * Several rulings the brief leaves undefined are decided here and repeated in the README,
- * because a reviewer will diff documented behaviour against actual behaviour.
+ * An unspecified filter is no constraint. Filters combine with AND, values within one
+ * filter with OR.
  */
 
 export type MediaFilter = 'images' | 'video' | 'links' | 'text_only';
@@ -28,7 +21,7 @@ export interface FilterCriteria {
   readonly minReplies?: number;
   readonly onlyVerified?: boolean;
   readonly mediaType?: MediaFilter;
-  /** Both default to `false`: §4 states the default only for retweets (SPEC.md §3.1). */
+  /** Both default to `false`. The brief states a default only for retweets. */
   readonly includeReplies?: boolean;
   readonly includeRetweets?: boolean;
 }
@@ -52,10 +45,7 @@ function matchesStructure(tweet: Tweet, criteria: FilterCriteria): boolean {
   return true;
 }
 
-/**
- * Applied against the Snowflake rather than `createdAt`: the ID is always present and
- * always exact, whereas `created_at` is a formatted string that can be missing.
- */
+/** Against the Snowflake, not `createdAt`: the id is always present and always exact. */
 function matchesDateRange(tweet: Tweet, criteria: FilterCriteria): boolean {
   if (criteria.since === undefined && criteria.until === undefined) return true;
 
@@ -106,9 +96,7 @@ function matchesPeople(tweet: Tweet, criteria: FilterCriteria): boolean {
 }
 
 function matchesEngagement(tweet: Tweet, criteria: FilterCriteria): boolean {
-  // Inclusive floors. A null metric counts as 0 — absent data is not evidence of
-  // engagement, and the alternative (passing everything) would break `minLikes` on any
-  // tweet X served without counters.
+  // Inclusive floors. A null metric counts as 0: absent data is not evidence of engagement.
   if ((tweet.metrics.likes ?? 0) < (criteria.minLikes ?? 0)) return false;
   if ((tweet.metrics.retweets ?? 0) < (criteria.minRetweets ?? 0)) return false;
   if ((tweet.metrics.replies ?? 0) < (criteria.minReplies ?? 0)) return false;
@@ -120,33 +108,27 @@ function matchesMedia(tweet: Tweet, mediaType: MediaFilter | undefined): boolean
 
   const media = tweet.entities.media;
   const hasPhoto = media.some((m) => m.type === 'photo');
-  // X stores GIFs as MP4 and §4 offers no `gif` value, so `animated_gif` groups here.
+  // X stores GIFs as MP4, and the enum has no `gif` value.
   const hasVideo = media.some((m) => m.type === 'video' || m.type === 'animated_gif');
   const hasLinks = tweet.entities.urls.length > 0;
 
   switch (mediaType) {
     case 'images':
-      // "Tweets with images" is the natural reading. Requiring *only* photos would
-      // surprise a user whose tweet also has a link.
+      // "Tweets with images", not "photos only", which would surprise.
       return hasPhoto;
     case 'video':
       return hasVideo;
     case 'links':
       return hasLinks;
     case 'text_only':
-      // No media AND no links: `links` is its own enum value, so allowing links inside
-      // `text_only` would make the enum incoherent.
+      // `links` is its own enum value, so allowing links here makes the enum incoherent.
       return media.length === 0 && !hasLinks;
   }
 }
 
 /**
- * Ordering (SPEC.md §3.1).
- *
- * `latest` is exact: descending Snowflake is descending time. `top` is an approximation
- * by engagement **within the collected set** — X's own relevance ranking is not
- * reproducible from the guest surface, and that is declared out of scope rather than
- * faked.
+ * `latest` is exact — descending Snowflake is descending time. `top` approximates by
+ * engagement within the collected set; X's own ranking is not reachable as a guest.
  */
 export function sortTweets(tweets: readonly Tweet[], sortBy: SortOrder): Tweet[] {
   const sorted = [...tweets];

@@ -9,12 +9,6 @@ import type {
 import { asArray, asBoolean, asNumber, asRecord, asString, path } from './json.js';
 import { unwrapVisibility } from './timeline.js';
 
-/**
- * X payload → the §5 output contract (SPEC.md §3.2).
- *
- * Pure, so the whole thing is testable against committed fixtures with no network.
- */
-
 export interface NormalizeOptions {
   /** Injected so output is deterministic in tests. */
   readonly now?: () => Date;
@@ -59,7 +53,7 @@ export function normalizeTweet(raw: unknown, opts: NormalizeOptions = {}): Tweet
      * Metrics come from the *original* for a retweet. The wrapper's counters are
      * structurally zero — measured: wrapper `favorite_count: 0` against the original's
      * `13` on the same retweet — so reading the wrapper would make `minLikes` silently
-     * discard every retweet in the run (SPEC.md §3.2).
+     * discard every retweet in the run.
      */
     metrics: readMetrics(contentSource),
     entities,
@@ -112,7 +106,7 @@ function buildText(contentSource: unknown): string {
   /**
    * Step 4, and it must be last. X's `indices` are offsets into the *raw* string, so any
    * transform that changes length invalidates every later index — decoding `&amp;`
-   * (5 chars) to `&` (1 char) shifts everything after it by four (SPEC.md §3.2).
+   * (5 chars) to `&` (1 char) shifts everything after it by four.
    *
    * We sidestep index arithmetic entirely by replacing t.co tokens as strings, which is
    * also immune to a second trap: X computes indices in Unicode code points while
@@ -145,31 +139,21 @@ function decodeHtmlEntities(text: string): string {
 }
 
 /**
- * The §5 `author` block, read from an X user object.
- *
- * Exported because the profile surface (brief §2a) reads the *same* user shape from a
- * different path: `UserByScreenName` returns it at `data.user.result`, while a tweet
- * carries it at `core.user_results.result`. One reader means the standalone profile and
- * the author embedded in a tweet cannot disagree.
+ * Shared with the profile surface, which reads the same user shape from a different path.
+ * One reader keeps a standalone profile and a tweet's embedded author in agreement.
  */
 export function readUserFields(user: unknown): TweetAuthor {
   return {
     id: asString(path(user, 'rest_id')),
-    // `core.screen_name`, not `legacy.screen_name` — X is emptying the legacy user
-    // object, and on a profile response `legacy` now comes back with zero keys.
+    // X is emptying the legacy user object; a profile response now has zero keys in it.
     username: asString(path(user, 'core', 'screen_name')),
     name: asString(path(user, 'core', 'name')),
-    /**
-     * X conflates paid Blue with legacy verification, and §5's single boolean cannot
-     * distinguish them. Never key off `verified_type`: `@grok` returns
-     * `verification: { verified: false, verified_type: "Business" }` while being
-     * unmistakably verified in the UI via `is_blue_verified`.
-     */
+    // X conflates paid Blue with legacy verification. Never key off `verified_type`,
+    // which reads "Business" on accounts whose `verified` is false.
     verified:
       asBoolean(path(user, 'is_blue_verified')) ||
       asBoolean(path(user, 'verification', 'verified')),
-    // `legacy.followers_count` no longer exists. Most published scrapers still read it
-    // and silently emit null.
+    // `legacy.followers_count` no longer exists; X moved these to relationship_counts.
     followers: asNumber(path(user, 'relationship_counts', 'followers')),
     following: asNumber(path(user, 'relationship_counts', 'following')),
   };
@@ -219,13 +203,7 @@ function readMedia(raw: unknown): TweetMedia | null {
 
   const still = asString(path(raw, 'media_url_https'));
 
-  /**
-   * For video and GIFs `media_url_https` is the poster frame, not the media. Emitting it
-   * as `url` would make every video item indistinguishable from a photo, so we resolve
-   * the highest-bitrate MP4 variant and keep the still as the thumbnail. (X stores GIFs
-   * as MP4, which is also why `animated_gif` groups under `video` for filtering —
-   * SPEC.md §3.1.)
-   */
+  // For video and GIFs `media_url_https` is the poster frame, not the media.
   if (type === 'video' || type === 'animated_gif') {
     return { type: type as MediaKind, url: bestVideoVariant(raw) ?? still, thumbnail: still };
   }
@@ -273,11 +251,8 @@ const MONTHS: Readonly<Record<string, string>> = {
 };
 
 /**
- * `"Fri Aug 14 15:38:52 +0000 2026"` → `"2026-08-14T15:38:52.000Z"`.
- *
- * Parsed explicitly rather than handed to `new Date(string)`, whose behaviour on
- * non-ISO formats is implementation-defined — it happens to work in V8 today, which is
- * not a guarantee worth resting the `since`/`until` filters on.
+ * `"Fri Aug 14 15:38:52 +0000 2026"` → `"2026-08-14T15:38:52.000Z"`. Parsed explicitly
+ * because `new Date(string)` on non-ISO formats is implementation-defined.
  */
 export function parseTwitterDate(value: string | null): string | null {
   if (value === null) return null;
