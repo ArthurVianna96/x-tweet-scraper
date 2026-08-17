@@ -413,6 +413,23 @@ and we declare the substitution rather than hide it:
   costs, measured separately;
 - the run must stay clean: any `429` invalidates the measurement.
 
+**Headline, measured on the Apify platform under §8's own conditions** — paid user,
+`sortBy: latest`, `maxResults: 100`, Apify residential proxy, build 0.1.3:
+
+|                                         |                                          |
+| --------------------------------------- | ---------------------------------------- |
+| **Time to 100 schema-conforming items** | **10.8 s** — Grade A (< 30 s)            |
+| Requests / pages                        | 11 requests, 6 pages                     |
+| Guest tokens                            | 1                                        |
+| Selectivity                             | 77%                                      |
+| Transferred                             | 4.1 MB                                   |
+| `429` / `403` / errors of any kind      | **0**                                    |
+| Duplicates                              | 0 — 100 unique ids, descending Snowflake |
+| Cost per 1k results                     | 0.041 GB proxy + 0.12 CU ≈ **$0.56**     |
+
+The run stayed clean, which §8 requires: no bans, nothing dropped to error, and one guest
+token was enough because 11 requests sits far inside the ~50-per-15-minutes budget.
+
 Reproduce with `npx tsx src/tools/benchmark.ts native …` / `… seeded …`.
 Measured 2026-08-17, macOS, **no proxy** (direct residential connection):
 
