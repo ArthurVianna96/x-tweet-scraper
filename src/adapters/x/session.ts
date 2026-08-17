@@ -153,13 +153,11 @@ export class SessionPool {
     }
 
     // Round-robin across live triples so no single token burns its budget first.
-    const session = usable[this.cursor % usable.length];
-    this.cursor++;
-    if (session !== undefined) return session;
-
-    const fresh = await this.create();
-    this.sessions.push(fresh);
-    return fresh;
+    // `usable` is non-empty here — an empty pool takes the grow branch above — so the
+    // guard is `noUncheckedIndexedAccess` appeasement, not a reachable state.
+    const session = usable[this.cursor++ % usable.length];
+    if (session === undefined) throw new Error('session pool: unreachable empty rotation');
+    return session;
   }
 
   private requestsAcrossPool(): number {

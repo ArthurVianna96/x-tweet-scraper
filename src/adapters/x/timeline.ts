@@ -34,23 +34,17 @@ export interface TimelinePage {
 }
 
 /**
- * `TimelineTerminateTimeline` carries a `direction` ("Top" | "Bottom" | "TopAndBottom").
- * The obvious reading — "terminated means stop paging" — is wrong, and expensively so.
+ * `TimelineTerminateTimeline` carries a `direction`, and the obvious reading —
+ * "terminated means stop paging" — is wrong.
  *
- * Measured 2026-08-17, guest token, no proxy:
+ * X emits `TopAndBottom` on *every* page of a paginated timeline while the bottom cursor
+ * keeps returning fresh tweets. Measured 2026-08-17: obeying it truncates `@apify` from
+ * 92 unique tweets to 19, a 79% recall loss that looks completely healthy in the logs
+ * because nothing errored.
  *
- * | Account | Page 0 | direction | Cursor followed anyway |
- * | --- | --- | --- | --- |
- * | `@apify` | 19 tweets | `TopAndBottom` | 5 pages, **92 unique tweets, all new** |
- * | `@naval` | 98 tweets | `TopAndBottom` | no cursor issued at all |
- *
- * X emits `TopAndBottom` on *every* page while the bottom cursor keeps returning fresh
- * tweets. Obeying the instruction truncates a paginated account from 92 tweets to 19 —
- * a 79% recall loss that looks completely healthy in the logs, because nothing errored.
- *
- * So the authoritative stop conditions are structural, not declarative: no bottom
- * cursor, an empty page, a cursor that does not advance, or a page of nothing new
- * (see `streamUserTweets`).
+ * The flag is therefore reported and not obeyed. The authoritative stop conditions are
+ * structural: no bottom cursor, an empty page, a cursor that does not advance, or a page
+ * of nothing new (see `streamUserTweets`).
  */
 export function isBottomTerminated(direction: string | null): boolean {
   if (direction === null) return true; // no direction stated: the conservative reading
@@ -78,11 +72,10 @@ export function extractTimelinePage(payload: unknown): TimelinePage {
       continue;
     }
 
-    if (type !== 'TimelineAddEntries' && type !== 'TimelinePinEntry') continue;
-
-    // A pinned tweet is an arbitrarily old tweet served at the top of the timeline. It
-    // silently corrupts `sortBy: latest` ordering, so it is skipped rather than emitted.
-    if (type === 'TimelinePinEntry') continue;
+    // `TimelinePinEntry` falls through here deliberately: a pinned tweet is an
+    // arbitrarily old tweet served at the top of the timeline, so emitting it would
+    // silently corrupt `sortBy: latest` ordering.
+    if (type !== 'TimelineAddEntries') continue;
 
     for (const entry of asArray(path(instruction, 'entries'))) {
       const content = path(entry, 'content');

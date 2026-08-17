@@ -125,12 +125,7 @@ export function toFilterCriteria(input: ActorInput): FilterCriteria {
   };
 }
 
-/**
- * `fromUsers` is a discovery seed *and* a filter. When it is the only people-filter the
- * seed set already guarantees the constraint, so applying it again is free — but a run
- * with snowball expansion would otherwise emit tweets from discovered accounts that are
- * not in `fromUsers`, which is not what the user asked for.
- */
+/** The query put to discovery: search terms plus hashtags, with the '#' put back. */
 export function topicTerms(input: ActorInput): string[] {
   return [...(input.searchTerms ?? []), ...(input.hashtags ?? []).map((tag) => `#${tag}`)];
 }

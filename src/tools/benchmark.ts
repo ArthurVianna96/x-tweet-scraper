@@ -29,7 +29,7 @@ import { XClient } from '../adapters/x/graphql.js';
 import { QueryIdResolver } from '../adapters/x/query-ids.js';
 import { SessionPool, generateBrowserHeaders } from '../adapters/x/session.js';
 import { collect } from '../domain/collect.js';
-import { matchesFilters, sortTweets, type FilterCriteria } from '../domain/filters.js';
+import { matchesFilters, type FilterCriteria } from '../domain/filters.js';
 import { ResultSink } from '../domain/result-sink.js';
 import type { Tweet } from '../domain/types.js';
 
@@ -89,8 +89,6 @@ async function main(): Promise<void> {
     keyOf: (tweet) => tweet.id,
   });
   const wallClockMs = Date.now() - started;
-
-  sortTweets(buffer, 'latest');
 
   const requests = transfer.requests - baselineRequests;
   const bytes = transfer.bytes - baselineBytes;

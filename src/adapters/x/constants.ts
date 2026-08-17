@@ -20,13 +20,3 @@ export const GRAPHQL_BASE = 'https://x.com/i/api/graphql';
  * so `/explore` is the reachable entry point for queryId extraction (SPEC.md §2).
  */
 export const BUNDLE_PAGE = 'https://x.com/explore';
-
-/** Operations verified reachable with guest auth. Anything else returns 404 (SPEC.md §2). */
-export const GUEST_PERMITTED_OPERATIONS = [
-  'UserByScreenName',
-  'UserTweets',
-  'TweetResultByRestId',
-  'GenericTimelineById',
-] as const;
-
-export type GuestOperation = (typeof GUEST_PERMITTED_OPERATIONS)[number];
