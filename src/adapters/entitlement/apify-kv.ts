@@ -49,7 +49,7 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
       throw new Error('could not resolve the runner identity from APIFY_TOKEN');
     }
 
-    const key = createHmac('sha256', opts.hmacKey).update(runnerUserId).digest('hex');
+    const key = entitlementKeyFor(runnerUserId, opts.hmacKey);
 
     const record = await withTimeout(
       opts.client.keyValueStore(opts.storeId).getRecord(key),
@@ -61,6 +61,18 @@ export function createEntitlementLookup(opts: EntitlementSourceOptions): () => P
     // it resolves to null rather than throwing. Only a *failed* lookup throws.
     return record?.value ?? null;
   };
+}
+
+/**
+ * The key a user's entitlement record lives under.
+ *
+ * Exported because provisioning a paid customer needs the *same* derivation the gate
+ * uses — `src/tools/entitlement-key.ts` calls this rather than reimplementing it. Two
+ * copies of an HMAC would drift silently, and the failure mode is a paying customer
+ * capped at 10 with no error anywhere.
+ */
+export function entitlementKeyFor(userId: string, hmacKey: string): string {
+  return createHmac('sha256', hmacKey).update(userId).digest('hex');
 }
 
 /**

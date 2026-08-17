@@ -8,8 +8,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "npm run build && node dist/actor/main.js",
-    "start:dev": "tsx src/actor/main.ts",
+    "start": "npm run build && node --env-file-if-exists=.env dist/actor/main.js",
+    "start:dev": "tsx --env-file-if-exists=.env src/actor/main.ts",
+    "entitlement": "tsx --env-file-if-exists=.env src/tools/entitlement-key.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",

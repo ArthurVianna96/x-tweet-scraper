@@ -578,29 +578,61 @@ bounded by the cap and checkpointed on migration.
 
 ## 7. Running it
 
-### On Apify
+### Configuring the gate
 
-1. Push the Actor (`apify push`) or build from this repo.
-2. Set environment variables:
-   - `ENTITLEMENTS_STORE_ID` — `username/store-name` of a **public-read** key-value store
-     that only your account can write.
-   - `ENTITLEMENTS_HMAC_KEY` — **mark this Secret.** Without it, every run resolves to
-     `entitlement_unavailable` and is capped at 10, which is the correct fail-closed
-     behaviour but not what you want in production.
-3. Grant paid access by writing `{"paid": true}` to the store under key
-   `HMAC-SHA256(userId, ENTITLEMENTS_HMAC_KEY)` in hex.
+Two environment variables drive it. `.env.example` documents both; copy it to `.env` for
+local runs (gitignored, and loaded automatically by `npm run start:dev`).
 
-### Locally
+| Variable                | What it is                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| `ENTITLEMENTS_STORE_ID` | `username/store-name` of a **public-read** key-value store that only your account can write |
+| `ENTITLEMENTS_HMAC_KEY` | the authority behind the gate — `openssl rand -hex 32`                                      |
+
+**Neither is required to run.** Without them every run resolves to
+`entitlement_unavailable` and is capped at 10 — the gate failing closed, which is correct
+behaviour rather than a configuration error. You can watch it happen locally.
+
+`ENTITLEMENTS_HMAC_KEY` **must be Secret on Apify.** A published Actor's non-secret
+environment variables are publicly visible on its detail page, so a plain env var would
+publish the key itself. To make that structural rather than a checkbox someone forgets,
+`.actor/actor.json` references both through Apify's secret mechanism, so `apify push`
+uploads them encrypted:
+
+```bash
+apify secrets add x-scraper-entitlements-store  your-username/x-scraper-entitlements
+apify secrets add x-scraper-entitlements-hmac   "$(openssl rand -hex 32)"
+apify push
+```
+
+(Both must exist locally before the first push, or it will fail on the missing reference.)
+
+### Granting paid access
+
+Records are keyed by `HMAC-SHA256(userId, ENTITLEMENTS_HMAC_KEY)`, so the store leaks no
+customer IDs even though it is world-readable. `npm run entitlement` derives that key with
+the _same function the gate uses_ — never recompute it by hand, because a mismatch caps a
+paying customer with no error anywhere:
+
+```bash
+npm run entitlement -- grant  <userId>   # write { paid: true }
+npm run entitlement -- check  <userId>   # read back what is stored
+npm run entitlement -- revoke <userId>   # write { paid: false }
+npm run entitlement -- key    <userId>   # just print the key (no network, no token)
+```
+
+`grant`/`revoke`/`check` write to the store, so they need **your** `APIFY_TOKEN` — write
+access is the entire authority behind the gate. The record body deliberately contains no
+user id: the key is HMAC'd precisely so a public store reveals nothing about who is on it.
+
+### Running locally
 
 ```bash
 npm install
+cp .env.example .env          # optional — without it the gate caps at 10
 echo '{"fromUsers":["apify","naval"],"maxResults":100}' \
   > storage/key_value_stores/default/INPUT.json
 npm run start:dev
 ```
-
-With no entitlement store configured, local runs cap at 10 and log
-`entitlement_unavailable` — the gate failing closed, which you can watch happen.
 
 A residential proxy is recommended (`proxyConfiguration: {"useApifyProxy": true,
 "apifyProxyGroups": ["RESIDENTIAL"]}`). X rate-limits per token and per IP, and the seed
@@ -608,13 +640,14 @@ lookup is more likely to be challenged from a datacenter IP.
 
 ### Development
 
-|                                                         |                                          |
-| ------------------------------------------------------- | ---------------------------------------- |
-| `npm test`                                              | 164 tests, offline, no platform          |
-| `npm run typecheck` / `npm run lint`                    | strict TS, ESLint                        |
-| `npm run probe`                                         | reproduce the endpoint capability matrix |
-| `npx tsx src/tools/capture-fixtures.ts <handles…>`      | refresh committed fixtures from live X   |
-| `npx tsx src/tools/benchmark.ts native \| seeded <arg>` | reproduce §5                             |
+|                                                               |                                          |
+| ------------------------------------------------------------- | ---------------------------------------- |
+| `npm test`                                                    | 164 tests, offline, no platform          |
+| `npm run typecheck` / `npm run lint`                          | strict TS, ESLint                        |
+| `npm run probe`                                               | reproduce the endpoint capability matrix |
+| `npx tsx src/tools/capture-fixtures.ts <handles…>`            | refresh committed fixtures from live X   |
+| `npx tsx src/tools/benchmark.ts native \| seeded <arg>`       | reproduce §5                             |
+| `npm run entitlement -- <key\|grant\|revoke\|check> <userId>` | provision a paid customer                |
 
 Layering is one-way — `actor → adapters → domain` — and `domain/` imports nothing from
 the other two. Every seam is constructor injection; there is no module mocking anywhere in

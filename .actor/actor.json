@@ -7,6 +7,10 @@
   "buildTag": "latest",
   "input": "./input_schema.json",
   "dockerfile": "../Dockerfile",
+  "environmentVariables": {
+    "ENTITLEMENTS_STORE_ID": "@x-scraper-entitlements-store",
+    "ENTITLEMENTS_HMAC_KEY": "@x-scraper-entitlements-hmac"
+  },
   "storages": {
     "dataset": "./dataset_schema.json"
   }
