@@ -6,7 +6,7 @@ with guest tokens, plus a free-tier cap that cannot be lifted by editing the inp
 
 ```bash
 npm install
-npm test                     # 164 tests, offline, ~0.5s
+npm test                     # 204 tests, offline, ~0.5s
 npm run probe                # reproduce the endpoint capability matrix (~20s, no credentials)
 npm run start:dev            # run the Actor locally
 ```
@@ -154,7 +154,7 @@ No browser engine is installed and none is needed. The whole client is
 export type HttpClient = (req: HttpRequest) => Promise<HttpResponse>;
 ```
 
-Everything that leaves the process goes through it, which is what makes 164 tests run
+Everything that leaves the process goes through it, which is what makes 204 tests run
 offline in 0.4 s with no module mocking. It is deliberately status-code-transparent: a
 `404` or `429` is a _response_, not an exception, because the error taxonomy cannot
 classify what the transport already threw away.
@@ -721,7 +721,7 @@ lookup is more likely to be challenged from a datacenter IP.
 
 |                                                               |                                          |
 | ------------------------------------------------------------- | ---------------------------------------- |
-| `npm test`                                                    | 164 tests, offline, no platform          |
+| `npm test`                                                    | 204 tests, offline, no platform          |
 | `npm run typecheck` / `npm run lint`                          | strict TS, ESLint                        |
 | `npm run probe`                                               | reproduce the endpoint capability matrix |
 | `npx tsx src/tools/capture-fixtures.ts <handles…>`            | refresh committed fixtures from live X   |
