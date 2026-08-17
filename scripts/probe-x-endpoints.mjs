@@ -85,11 +85,7 @@ async function fetchBundle() {
   ).text();
 
   const urls = [
-    ...new Set(
-      html.match(
-        /https:\/\/abs\.twimg\.com\/responsive-web\/client-web[^"]*\.js/g,
-      ) ?? [],
-    ),
+    ...new Set(html.match(/https:\/\/abs\.twimg\.com\/responsive-web\/client-web[^"]*\.js/g) ?? []),
   ];
   const main = urls.find((u) => u.includes('/main.'));
   if (!main) throw new Error('main.<hash>.js not found in /explore');
@@ -141,20 +137,17 @@ async function probe(name, meta, guestToken, variables = {}) {
     features: JSON.stringify({}),
     fieldToggles: JSON.stringify({}),
   });
-  const res = await fetch(
-    `https://x.com/i/api/graphql/${meta.queryId}/${name}?${qs}`,
-    {
-      headers: {
-        authorization: `Bearer ${BEARER}`,
-        'x-guest-token': guestToken,
-        'user-agent': UA,
-        accept: '*/*',
-        'x-twitter-active-user': 'yes',
-        'x-twitter-client-language': 'en',
-        referer: 'https://x.com/',
-      },
+  const res = await fetch(`https://x.com/i/api/graphql/${meta.queryId}/${name}?${qs}`, {
+    headers: {
+      authorization: `Bearer ${BEARER}`,
+      'x-guest-token': guestToken,
+      'user-agent': UA,
+      accept: '*/*',
+      'x-twitter-active-user': 'yes',
+      'x-twitter-client-language': 'en',
+      referer: 'https://x.com/',
     },
-  );
+  });
   const body = await res.text();
   return {
     status: res.status,
