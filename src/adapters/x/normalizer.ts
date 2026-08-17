@@ -144,12 +144,19 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
-function readAuthor(result: unknown): TweetAuthor {
-  const user = path(result, 'core', 'user_results', 'result');
-
+/**
+ * The §5 `author` block, read from an X user object.
+ *
+ * Exported because the profile surface (brief §2a) reads the *same* user shape from a
+ * different path: `UserByScreenName` returns it at `data.user.result`, while a tweet
+ * carries it at `core.user_results.result`. One reader means the standalone profile and
+ * the author embedded in a tweet cannot disagree.
+ */
+export function readUserFields(user: unknown): TweetAuthor {
   return {
     id: asString(path(user, 'rest_id')),
-    // `core.screen_name`, not `legacy.screen_name` — X is emptying the legacy user object.
+    // `core.screen_name`, not `legacy.screen_name` — X is emptying the legacy user
+    // object, and on a profile response `legacy` now comes back with zero keys.
     username: asString(path(user, 'core', 'screen_name')),
     name: asString(path(user, 'core', 'name')),
     /**
@@ -166,6 +173,10 @@ function readAuthor(result: unknown): TweetAuthor {
     followers: asNumber(path(user, 'relationship_counts', 'followers')),
     following: asNumber(path(user, 'relationship_counts', 'following')),
   };
+}
+
+function readAuthor(result: unknown): TweetAuthor {
+  return readUserFields(path(result, 'core', 'user_results', 'result'));
 }
 
 function readMetrics(contentSource: unknown): TweetMetrics {

@@ -1,0 +1,184 @@
+{
+  "data": {
+    "user": {
+      "result": {
+        "__typename": "User",
+        "action_counts": {
+          "favorites_count": 4107
+        },
+        "affiliates_highlighted_label": {},
+        "avatar": {
+          "image_url": "https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png"
+        },
+        "banner": {
+          "image_url": "https://pbs.twimg.com/profile_banners/3510729917/1784551662"
+        },
+        "business_account": {
+          "affiliates_count": 3
+        },
+        "can_pay": false,
+        "core": {
+          "created_at": "Tue Sep 01 08:38:01 +0000 2015",
+          "name": "Apify",
+          "screen_name": "apify"
+        },
+        "creator_subscriptions_count": 0,
+        "dm_permissions": {
+          "can_dm": false
+        },
+        "follow_request_sent": false,
+        "has_graduated_access": true,
+        "has_hidden_subscriptions_on_profile": false,
+        "highlights_info": {
+          "can_highlight_tweets": true,
+          "highlighted_tweets": "48"
+        },
+        "id": "VXNlcjozNTEwNzI5OTE3",
+        "is_blue_verified": false,
+        "is_profile_translatable": false,
+        "legacy_extended_profile": {},
+        "location": {
+          "location": "The Interwebz"
+        },
+        "media_permissions": {
+          "can_media_tag": false
+        },
+        "notifications_settings": {
+          "notifications_enabled": false
+        },
+        "parody_commentary_fan_label": "None",
+        "pinned_items": {
+          "tweet_ids_str": [
+            "2087572956683567110"
+          ]
+        },
+        "possibly_sensitive": false,
+        "privacy": {
+          "protected": false
+        },
+        "professional": {
+          "category": [],
+          "professional_type": "Business",
+          "rest_id": "1583013496266137600"
+        },
+        "profile_bio": {
+          "description": "Thousands of Actors to automate your business, get real-time web data, and integrate your apps and agents.  ➡️  https://t.co/rySkh8qnak • https://t.co/PiUfLvrTQ2 • https://t.co/x4G1meKY5i",
+          "entities": {
+            "description": {
+              "urls": [
+                {
+                  "display_url": "apify.com",
+                  "expanded_url": "http://apify.com",
+                  "indices": [
+                    112,
+                    135
+                  ],
+                  "url": "https://t.co/rySkh8qnak"
+                },
+                {
+                  "display_url": "mcp.apify.com",
+                  "expanded_url": "http://mcp.apify.com",
+                  "indices": [
+                    138,
+                    161
+                  ],
+                  "url": "https://t.co/PiUfLvrTQ2"
+                },
+                {
+                  "display_url": "github.com/apify",
+                  "expanded_url": "http://github.com/apify",
+                  "indices": [
+                    164,
+                    187
+                  ],
+                  "url": "https://t.co/x4G1meKY5i"
+                }
+              ]
+            },
+            "url": {
+              "urls": [
+                {
+                  "display_url": "apify.com",
+                  "expanded_url": "https://apify.com",
+                  "indices": [
+                    0,
+                    23
+                  ],
+                  "url": "https://t.co/VWktFqWRhX"
+                }
+              ]
+            }
+          }
+        },
+        "profile_description_language": "en",
+        "profile_image_shape": "Square",
+        "profile_metadata": {
+          "profile_interstitial_type": ""
+        },
+        "profile_sort_enabled": true,
+        "profile_translation": {
+          "translator_type": "none"
+        },
+        "relationship_counts": {
+          "followers": 11867,
+          "following": 296
+        },
+        "relationship_perspectives": {
+          "blocked_by": false,
+          "blocking": false,
+          "followed_by": false,
+          "following": false,
+          "live_following": false,
+          "muting": false
+        },
+        "rest_id": "3510729917",
+        "super_follow_eligible": false,
+        "super_followed_by": false,
+        "super_following": false,
+        "tipjar_settings": {
+          "bandcamp_handle": "",
+          "bitcoin_handle": "",
+          "cash_app_handle": "",
+          "ethereum_handle": "",
+          "gofundme_handle": "",
+          "is_enabled": false,
+          "patreon_handle": "",
+          "pay_pal_handle": "",
+          "venmo_handle": ""
+        },
+        "tweet_counts": {
+          "media_tweets": 1154,
+          "tweets": 4635
+        },
+        "user_seed_tweet_count": 1,
+        "verification": {
+          "verified": false,
+          "verified_type": "Business"
+        },
+        "verification_info": {
+          "is_identity_verified": false,
+          "reason": {
+            "description": {
+              "entities": [
+                {
+                  "from_index": 69,
+                  "ref": {
+                    "url": "https://help.twitter.com/en/rules-and-policies/profile-labels",
+                    "url_type": "ExternalUrl"
+                  },
+                  "to_index": 79
+                }
+              ],
+              "text": "This account is verified because it's an official organization on X. Learn more"
+            },
+            "verified_since_msec": "1705078451358"
+          }
+        },
+        "verified_phone_status": false,
+        "website": {
+          "url": "https://t.co/VWktFqWRhX"
+        }
+      }
+    }
+  }
+}

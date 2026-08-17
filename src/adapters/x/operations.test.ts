@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { loadFixture } from '../../../test/support/fixtures.js';
+import { TargetUnavailableError } from './errors.js';
 import type { XClient } from './graphql.js';
-import { streamUserTweets } from './operations.js';
+import { fetchUserProfile, streamUserTweets } from './operations.js';
 
 /**
  * Pagination stop conditions (SPEC.md §2, and the terminate-direction finding in
@@ -159,5 +161,59 @@ describe('streamUserTweets', () => {
 
     streamUserTweets(client, { userId: '1', handle: 'tester' });
     expect(calls).toHaveLength(0);
+  });
+});
+
+/**
+ * The profile surface (brief §2a): handle → §5's `author`, asserted against a real
+ * `UserByScreenName` payload rather than a hand-written one.
+ */
+describe('fetchUserProfile', () => {
+  const PROFILE = loadFixture('user-profile');
+
+  function profileClient(payload: unknown): XClient {
+    return {
+      async call() {
+        return payload;
+      },
+    } as unknown as XClient;
+  }
+
+  it('returns exactly the §5 author fields', async () => {
+    const profile = await fetchUserProfile(profileClient(PROFILE), '@apify');
+
+    expect(profile).toMatchObject({
+      id: '3510729917',
+      username: 'apify',
+      name: 'Apify',
+      protected: false,
+    });
+    expect(typeof profile.verified).toBe('boolean');
+    expect(typeof profile.followers).toBe('number');
+    expect(typeof profile.following).toBe('number');
+  });
+
+  it('reads follower counts from relationship_counts, not the emptied legacy object', async () => {
+    const raw = PROFILE as { data: { user: { result: Record<string, unknown> } } };
+    const user = raw.data.user.result;
+
+    // The measurement behind the schema note: X now returns `legacy` with zero keys on
+    // a profile, so a scraper still reading `legacy.followers_count` emits null.
+    expect(Object.keys((user['legacy'] as object) ?? {})).toHaveLength(0);
+
+    const profile = await fetchUserProfile(profileClient(PROFILE), 'apify');
+    expect(profile.followers).toBe(
+      (user['relationship_counts'] as { followers: number }).followers,
+    );
+  });
+
+  it('a profile that X will not serve is skipped, not fatal', async () => {
+    const unavailable = {
+      data: { user: { result: { __typename: 'UserUnavailable', reason: 'Suspended' } } },
+    };
+
+    await expect(fetchUserProfile(profileClient(unavailable), 'gone')).rejects.toThrow(
+      TargetUnavailableError,
+    );
   });
 });

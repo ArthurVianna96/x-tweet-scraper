@@ -1,0 +1,492 @@
+{
+  "data": {
+    "tweetResult": {
+      "result": {
+        "__typename": "Tweet",
+        "cashtag_attachments": [],
+        "core": {
+          "user_results": {
+            "result": {
+              "__typename": "User",
+              "action_counts": {
+                "favorites_count": 4107
+              },
+              "affiliates_highlighted_label": {},
+              "avatar": {
+                "image_url": "https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png"
+              },
+              "banner": {
+                "image_url": "https://pbs.twimg.com/profile_banners/3510729917/1784551662"
+              },
+              "can_pay": false,
+              "core": {
+                "created_at": "Tue Sep 01 08:38:01 +0000 2015",
+                "name": "Apify",
+                "screen_name": "apify"
+              },
+              "dm_permissions": {
+                "can_dm": false
+              },
+              "follow_request_sent": false,
+              "has_graduated_access": true,
+              "id": "VXNlcjozNTEwNzI5OTE3",
+              "is_blue_verified": false,
+              "location": {
+                "location": "The Interwebz"
+              },
+              "media_permissions": {
+                "can_media_tag": false
+              },
+              "notifications_settings": {
+                "notifications_enabled": false
+              },
+              "parody_commentary_fan_label": "None",
+              "pinned_items": {
+                "tweet_ids_str": [
+                  "2087572956683567110"
+                ]
+              },
+              "possibly_sensitive": false,
+              "privacy": {
+                "protected": false
+              },
+              "professional": {
+                "category": [],
+                "professional_type": "Business",
+                "rest_id": "1583013496266137600"
+              },
+              "profile_bio": {
+                "description": "Thousands of Actors to automate your business, get real-time web data, and integrate your apps and agents.  ➡️  https://t.co/rySkh8qnak • https://t.co/PiUfLvrTQ2 • https://t.co/x4G1meKY5i",
+                "entities": {
+                  "description": {
+                    "urls": [
+                      {
+                        "display_url": "apify.com",
+                        "expanded_url": "http://apify.com",
+                        "indices": [
+                          112,
+                          135
+                        ],
+                        "url": "https://t.co/rySkh8qnak"
+                      },
+                      {
+                        "display_url": "mcp.apify.com",
+                        "expanded_url": "http://mcp.apify.com",
+                        "indices": [
+                          138,
+                          161
+                        ],
+                        "url": "https://t.co/PiUfLvrTQ2"
+                      },
+                      {
+                        "display_url": "github.com/apify",
+                        "expanded_url": "http://github.com/apify",
+                        "indices": [
+                          164,
+                          187
+                        ],
+                        "url": "https://t.co/x4G1meKY5i"
+                      }
+                    ]
+                  },
+                  "url": {
+                    "urls": [
+                      {
+                        "display_url": "apify.com",
+                        "expanded_url": "https://apify.com",
+                        "indices": [
+                          0,
+                          23
+                        ],
+                        "url": "https://t.co/VWktFqWRhX"
+                      }
+                    ]
+                  }
+                }
+              },
+              "profile_description_language": "en",
+              "profile_image_shape": "Square",
+              "profile_metadata": {
+                "profile_interstitial_type": ""
+              },
+              "profile_translation": {
+                "translator_type": "none"
+              },
+              "relationship_counts": {
+                "followers": 11867,
+                "following": 296
+              },
+              "relationship_perspectives": {
+                "blocked_by": false,
+                "blocking": false,
+                "followed_by": false,
+                "following": false,
+                "live_following": false,
+                "muting": false
+              },
+              "rest_id": "3510729917",
+              "super_follow_eligible": false,
+              "super_followed_by": false,
+              "super_following": false,
+              "tipjar_settings": {
+                "bandcamp_handle": "",
+                "bitcoin_handle": "",
+                "cash_app_handle": "",
+                "ethereum_handle": "",
+                "gofundme_handle": "",
+                "is_enabled": false,
+                "patreon_handle": "",
+                "pay_pal_handle": "",
+                "venmo_handle": ""
+              },
+              "tweet_counts": {
+                "media_tweets": 1154,
+                "tweets": 4635
+              },
+              "verification": {
+                "verified": false,
+                "verified_type": "Business"
+              },
+              "verified_phone_status": false,
+              "website": {
+                "url": "https://t.co/VWktFqWRhX"
+              }
+            }
+          }
+        },
+        "disallowed_reply_controls": [],
+        "edit_control": {
+          "edit_tweet_ids": [
+            "2089366645768643034"
+          ],
+          "editable_until_msecs": "1786982401000",
+          "edits_remaining": "5",
+          "is_edit_eligible": true
+        },
+        "grok_analysis_button": true,
+        "grok_annotations": {
+          "is_image_editable_by_grok": false
+        },
+        "grok_translated_post_with_availability": {
+          "is_available": false
+        },
+        "is_translatable": false,
+        "legacy": {
+          "bookmark_count": 11,
+          "bookmarked": false,
+          "conversation_id_str": "2089366645768643034",
+          "created_at": "Mon Aug 17 15:00:01 +0000 2026",
+          "display_text_range": [
+            0,
+            279
+          ],
+          "entities": {
+            "user_mentions": [
+              {
+                "id_str": "1696913101491179520",
+                "indices": [
+                  89,
+                  98
+                ],
+                "name": "Kearney",
+                "screen_name": "kearneyy"
+              },
+              {
+                "id_str": "13058772",
+                "indices": [
+                  151,
+                  160
+                ],
+                "name": "LinkedIn",
+                "screen_name": "LinkedIn"
+              },
+              {
+                "id_str": "3192519528",
+                "indices": [
+                  167,
+                  179
+                ],
+                "name": "Apollo.io",
+                "screen_name": "useapolloio"
+              }
+            ]
+          },
+          "favorite_count": 10,
+          "favorited": false,
+          "full_text": "$2 for 1,000 warm leads sounds too good to be true, until you see the stack behind it. \n\n@kearneyy's stack: Apify pulls reactions and comments off any @LinkedIn post, @useapolloio enriches each profile, then scoring filters for people who already want what you sell. \n\nFull stack",
+          "id_str": "2089366645768643034",
+          "is_quote_status": true,
+          "lang": "en",
+          "quote_count": 0,
+          "quoted_status_id_str": "2088318814601580930",
+          "quoted_status_permalink": {
+            "display": "x.com/kearneyy/statu…",
+            "expanded": "https://twitter.com/kearneyy/status/2088318814601580930",
+            "url": "https://t.co/wA7zFWLTIR"
+          },
+          "reply_count": 1,
+          "retweet_count": 2,
+          "retweeted": false,
+          "user_id_str": "3510729917"
+        },
+        "note_tweet": {
+          "is_expandable": true,
+          "note_tweet_results": {
+            "result": {
+              "entity_set": {
+                "hashtags": [],
+                "smarttags": [],
+                "symbols": [],
+                "urls": [],
+                "user_mentions": [
+                  {
+                    "id_str": "1696913101491179520",
+                    "indices": [
+                      89,
+                      98
+                    ],
+                    "name": "Kearney",
+                    "screen_name": "kearneyy"
+                  },
+                  {
+                    "id_str": "13058772",
+                    "indices": [
+                      151,
+                      160
+                    ],
+                    "name": "LinkedIn",
+                    "screen_name": "LinkedIn"
+                  },
+                  {
+                    "id_str": "3192519528",
+                    "indices": [
+                      167,
+                      179
+                    ],
+                    "name": "Apollo.io",
+                    "screen_name": "useapolloio"
+                  }
+                ]
+              },
+              "id": "Tm90ZVR3ZWV0OjIwODkzNjY2NDU3MTQwNjMzNjA=",
+              "text": "$2 for 1,000 warm leads sounds too good to be true, until you see the stack behind it. \n\n@kearneyy's stack: Apify pulls reactions and comments off any @LinkedIn post, @useapolloio enriches each profile, then scoring filters for people who already want what you sell. \n\nFull stack below 👇"
+            }
+          }
+        },
+        "quoted_status_result": {
+          "result": {
+            "__typename": "Tweet",
+            "core": {
+              "user_results": {
+                "result": {
+                  "__typename": "User",
+                  "action_counts": {
+                    "favorites_count": 134009
+                  },
+                  "affiliates_highlighted_label": {},
+                  "avatar": {
+                    "image_url": "https://pbs.twimg.com/profile_images/2085009406354219008/vpgY_cab_normal.jpg"
+                  },
+                  "banner": {
+                    "image_url": "https://pbs.twimg.com/profile_banners/1696913101491179520/1785943701"
+                  },
+                  "can_pay": false,
+                  "core": {
+                    "created_at": "Wed Aug 30 15:50:03 +0000 2023",
+                    "name": "Kearney",
+                    "screen_name": "kearneyy"
+                  },
+                  "dm_permissions": {
+                    "can_dm": false
+                  },
+                  "follow_request_sent": false,
+                  "has_graduated_access": true,
+                  "id": "VXNlcjoxNjk2OTEzMTAxNDkxMTc5NTIw",
+                  "is_blue_verified": true,
+                  "location": {
+                    "location": "Get AI Right → "
+                  },
+                  "media_permissions": {
+                    "can_media_tag": false
+                  },
+                  "notifications_settings": {
+                    "notifications_enabled": false
+                  },
+                  "parody_commentary_fan_label": "None",
+                  "pinned_items": {
+                    "tweet_ids_str": [
+                      "2082539953594962036"
+                    ]
+                  },
+                  "possibly_sensitive": false,
+                  "privacy": {
+                    "protected": false
+                  },
+                  "profile_bio": {
+                    "description": "posting what i learn shipping with ai | gtm @goodenoughai",
+                    "entities": {
+                      "description": {},
+                      "url": {
+                        "urls": [
+                          {
+                            "display_url": "thenewyorkaiguy.com",
+                            "expanded_url": "http://thenewyorkaiguy.com",
+                            "indices": [
+                              0,
+                              23
+                            ],
+                            "url": "https://t.co/GPJCXKZjCW"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "profile_description_language": "en",
+                  "profile_image_shape": "Circle",
+                  "profile_metadata": {
+                    "profile_interstitial_type": ""
+                  },
+                  "profile_translation": {
+                    "translator_type": "none"
+                  },
+                  "relationship_counts": {
+                    "followers": 12468,
+                    "following": 4799
+                  },
+                  "relationship_perspectives": {
+                    "blocked_by": false,
+                    "blocking": false,
+                    "followed_by": false,
+                    "following": false,
+                    "live_following": false,
+                    "muting": false
+                  },
+                  "rest_id": "1696913101491179520",
+                  "super_follow_eligible": false,
+                  "super_followed_by": false,
+                  "super_following": false,
+                  "tipjar_settings": {
+                    "bandcamp_handle": "",
+                    "bitcoin_handle": "",
+                    "cash_app_handle": "",
+                    "ethereum_handle": "",
+                    "gofundme_handle": "",
+                    "is_enabled": false,
+                    "patreon_handle": "",
+                    "pay_pal_handle": "",
+                    "venmo_handle": ""
+                  },
+                  "tweet_counts": {
+                    "media_tweets": 1476,
+                    "tweets": 45743
+                  },
+                  "verification": {
+                    "verified": false
+                  },
+                  "verified_phone_status": false,
+                  "website": {
+                    "url": "https://t.co/GPJCXKZjCW"
+                  }
+                }
+              }
+            },
+            "disallowed_reply_controls": [],
+            "edit_control": {
+              "edit_tweet_ids": [
+                "2088318814601580930"
+              ],
+              "editable_until_msecs": "1786732579000",
+              "edits_remaining": "5",
+              "is_edit_eligible": true
+            },
+            "grok_analysis_button": true,
+            "grok_translated_post_with_availability": {
+              "is_available": false
+            },
+            "is_translatable": false,
+            "legacy": {
+              "bookmark_count": 7,
+              "bookmarked": false,
+              "conversation_id_str": "2088318814601580930",
+              "created_at": "Fri Aug 14 17:36:19 +0000 2026",
+              "display_text_range": [
+                0,
+                279
+              ],
+              "entities": {
+                "user_mentions": [
+                  {
+                    "id_str": "2064735918867484672",
+                    "indices": [
+                      152,
+                      165
+                    ],
+                    "name": "Good Enough",
+                    "screen_name": "GoodEnoughAi"
+                  }
+                ]
+              },
+              "favorite_count": 22,
+              "favorited": false,
+              "full_text": "I built a LinkedIn scraper this afternoon that finds our next 1,000 waitlist signups. Total cost: about $5/month.\n\nHere's the playbook we're running at @GoodEnoughAi.\n\nWhen Google shipped Gemini 3.7 Flash yesterday, the entire comment section under the launch posts was engineers",
+              "id_str": "2088318814601580930",
+              "is_quote_status": false,
+              "lang": "en",
+              "quote_count": 0,
+              "reply_count": 11,
+              "retweet_count": 0,
+              "retweeted": false,
+              "user_id_str": "1696913101491179520"
+            },
+            "note_tweet": {
+              "is_expandable": true,
+              "note_tweet_results": {
+                "result": {
+                  "entity_set": {
+                    "hashtags": [],
+                    "smarttags": [],
+                    "symbols": [],
+                    "urls": [],
+                    "user_mentions": [
+                      {
+                        "id_str": "2064735918867484672",
+                        "indices": [
+                          152,
+                          165
+                        ],
+                        "name": "Good Enough",
+                        "screen_name": "GoodEnoughAi"
+                      }
+                    ]
+                  },
+                  "id": "Tm90ZVR3ZWV0OjIwODgzMTg4MTQ0MjUzNTgzMzc=",
+                  "media": {
+                    "inline_media": []
+                  },
+                  "richtext": {
+                    "richtext_tags": []
+                  },
+                  "text": "I built a LinkedIn scraper this afternoon that finds our next 1,000 waitlist signups. Total cost: about $5/month.\n\nHere's the playbook we're running at @GoodEnoughAi.\n\nWhen Google shipped Gemini 3.7 Flash yesterday, the entire comment section under the launch posts was engineers talking about one thing: better AND cheaper. Those people are our exact customers. We sell managed open-source models at 70-90% less than frontier pricing. Someone reacting to a \"cheaper model\" post is raising their hand in public.\n\nSo instead of buying lead lists, we scrape the hands.\n\nThe stack:\n→ Apify no-cookie actors scrape reactions + comments off any LinkedIn post ($2 per 1,000 people, zero account risk, no burner logins)\n→ Apollo enriches each profile URL into title, company, headcount\n→ A scoring pass filters for our ICP: US builders, heads of AI, data eng leads, agencies\n→ Top matches get a human look, the rest flow into outreach\n→ Everything lands in our Notion, nothing sends without approval\n\nBuilt the whole thing with Claude Code in one session. First run pulled 217 people off a single post. Today's batch is 7 posts (the Gemini 3.7 launch wave plus open-model releases) for about 1,000 prospects, at a cost of roughly $2.\n\nOne rule we learned the hard way: only scrape posts under a month old. We pulled a 2024 post first and got 200 people whose \"intent\" was two years stale: fresh engagement or nothing.\n\nDistribution isn't about reach; it's about finding the people already telling the market they want what you sell.\n\nDM \"scrape\" and i'll shoot over the entire strategy."
+                }
+              }
+            },
+            "rest_id": "2088318814601580930",
+            "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+            "unmention_data": {},
+            "views": {
+              "count": "2378",
+              "state": "EnabledWithCount"
+            }
+          }
+        },
+        "rest_id": "2089366645768643034",
+        "source": "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web Client</a>",
+        "unmention_data": {},
+        "views": {
+          "count": "1115",
+          "state": "EnabledWithCount"
+        }
+      }
+    }
+  }
+}

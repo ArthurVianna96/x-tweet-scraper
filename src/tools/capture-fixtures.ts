@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { createGotClient } from '../adapters/http/got-client.js';
 import { XClient } from '../adapters/x/graphql.js';
 import { asArray, asString, path } from '../adapters/x/json.js';
-import { fetchUserByScreenName } from '../adapters/x/operations.js';
+import { fetchUserProfile } from '../adapters/x/operations.js';
 import { QueryIdResolver } from '../adapters/x/query-ids.js';
 import { SessionPool, generateBrowserHeaders } from '../adapters/x/session.js';
 import { extractTimelinePage } from '../adapters/x/timeline.js';
@@ -134,11 +134,27 @@ async function main(): Promise<void> {
 
   const found = new Map<string, { tweet: unknown; handle: string }>();
   let rawPageSaved = false;
+  let profileSaved = false;
+  let byIdSaved = false;
 
   for (const handle of handles) {
     process.stdout.write(`@${handle}\n`);
     try {
-      const user = await fetchUserByScreenName(client, handle);
+      // The profile surface's own payload (brief §2a). Saved raw, from the first handle
+      // that answers, because the normalizer test asserts against these exact paths.
+      if (!profileSaved) {
+        await save(
+          'user-profile',
+          await client.call(
+            'UserByScreenName',
+            { screen_name: handle, withSafetyModeUserFields: true },
+            { target: handle },
+          ),
+        );
+        profileSaved = true;
+      }
+
+      const user = await fetchUserProfile(client, handle);
       let cursor: string | null = null;
 
       for (let page = 0; page < 3; page++) {
@@ -163,6 +179,27 @@ async function main(): Promise<void> {
         if (!rawPageSaved && extracted.results.length > 0 && extracted.nextCursor !== null) {
           await save('timeline-page', trimTimelinePage(raw));
           rawPageSaved = true;
+        }
+
+        // The by-id surface's own payload (brief §2a), from a real id we just saw.
+        if (!byIdSaved) {
+          const firstId = asString(path(extracted.results[0], 'rest_id'));
+          if (firstId !== null) {
+            await save(
+              'tweet-by-id',
+              await client.call(
+                'TweetResultByRestId',
+                {
+                  tweetId: firstId,
+                  withCommunity: false,
+                  includePromotedContent: false,
+                  withVoice: false,
+                },
+                { target: firstId },
+              ),
+            );
+            byIdSaved = true;
+          }
         }
 
         for (const tweet of extracted.results) {

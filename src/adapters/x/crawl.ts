@@ -4,7 +4,7 @@ import type { DiscoveryStrategy } from '../discovery/types.js';
 import { TargetUnavailableError } from './errors.js';
 import type { XClient } from './graphql.js';
 import { normalizeTweet } from './normalizer.js';
-import { fetchUserByScreenName, streamUserTweets } from './operations.js';
+import { fetchUserProfile, streamUserTweets } from './operations.js';
 
 /**
  * The crawl: discovery → `UserByScreenName` → `UserTweets` (cursored) → normalized
@@ -145,7 +145,7 @@ export class Crawler {
     this.opts.onEvent?.({ type: 'account-start', handle, depth });
 
     try {
-      const user = await fetchUserByScreenName(this.opts.client, handle);
+      const user = await fetchUserProfile(this.opts.client, handle);
 
       if (user.protected) {
         // A protected account is readable as a profile but not as a timeline. Counting

@@ -1,22 +1,37 @@
+import type { TweetAuthor } from '../../domain/types.js';
 import type { XClient } from './graphql.js';
 import { TargetUnavailableError } from './errors.js';
 import { asBoolean, asString, path } from './json.js';
-import { extractTimelinePage, readUnavailableReason, type TimelinePage } from './timeline.js';
+import { readUserFields } from './normalizer.js';
+import {
+  extractTimelinePage,
+  readUnavailableReason,
+  unwrapVisibility,
+  type TimelinePage,
+} from './timeline.js';
 
 /**
- * The two operations the whole Actor runs on. Of the 23 GraphQL operations probed, five
- * are reachable with guest auth, and these are the two that carry tweets (SPEC.md §2).
+ * The three guest-reachable surfaces the Actor is built on (brief §2a): tweets by author,
+ * a profile by handle, and a single tweet by id. Of the 23 GraphQL operations probed,
+ * five are reachable with guest auth and these carry all the data we need.
  * `npm run probe` re-derives that matrix; `docs/README-data-source.md` §2 records it.
  */
 
-export interface XUser {
+/**
+ * A profile, in exactly §5's `author` shape plus what the crawl needs to page it.
+ *
+ * `id` and `username` narrow their `TweetAuthor` counterparts to non-null: the call
+ * throws without an id, and `username` falls back to the handle we asked for.
+ */
+export interface XProfile extends TweetAuthor {
   readonly id: string;
   readonly username: string;
-  readonly name: string | null;
+  /** Not a §5 field. A protected account is readable as a profile but not as a timeline. */
   readonly protected: boolean;
 }
 
-export async function fetchUserByScreenName(client: XClient, handle: string): Promise<XUser> {
+/** The profile surface (brief §2a): handle → the §5 `author` block. */
+export async function fetchUserProfile(client: XClient, handle: string): Promise<XProfile> {
   const screenName = handle.replace(/^@/, '');
   const payload = await client.call(
     'UserByScreenName',
@@ -28,19 +43,43 @@ export async function fetchUserByScreenName(client: XClient, handle: string): Pr
   if (unavailable !== null) throw new TargetUnavailableError(screenName, unavailable);
 
   const result = path(payload, 'data', 'user', 'result');
-  const id = asString(path(result, 'rest_id'));
-  if (id === null)
+  const author = readUserFields(result);
+  if (author.id === null)
     throw new TargetUnavailableError(screenName, 'not_found', 'no rest_id in response');
 
   return {
-    id,
-    // `core.screen_name` is the current path; `legacy.screen_name` is being emptied out.
-    username: asString(path(result, 'core', 'screen_name')) ?? screenName,
-    name: asString(path(result, 'core', 'name')),
+    ...author,
+    id: author.id,
+    username: author.username ?? screenName,
     protected:
       asBoolean(path(result, 'privacy', 'protected')) ||
       asBoolean(path(result, 'legacy', 'protected')),
   };
+}
+
+/**
+ * The by-id surface (brief §2a): one tweet, fully hydrated.
+ *
+ * The result sits at `data.tweetResult.result` and is the same object a timeline entry
+ * carries, so `normalizeTweet` reads it unchanged — including the retweet and note_tweet
+ * paths. Returns `null` when X has no such tweet (deleted, or an id that never existed),
+ * because one dead id must not fail a run of many.
+ */
+export async function fetchTweetById(client: XClient, tweetId: string): Promise<unknown | null> {
+  const payload = await client.call(
+    'TweetResultByRestId',
+    {
+      tweetId,
+      withCommunity: false,
+      includePromotedContent: false,
+      withVoice: false,
+    },
+    { target: tweetId },
+  );
+
+  const result = path(payload, 'data', 'tweetResult', 'result');
+  // An unknown id returns `tweetResult: {}` rather than an error.
+  return result === undefined ? null : unwrapVisibility(result);
 }
 
 /**
