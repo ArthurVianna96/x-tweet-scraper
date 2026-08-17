@@ -77,6 +77,12 @@ export class Crawler {
     cursors: {},
   };
 
+  constructor(private readonly opts: CrawlOptions) {}
+
+  private get maxDepth(): number {
+    return this.opts.expansionDepth ?? 1;
+  }
+
   /** @returns true when the run has spent its request budget and must wind down. */
   private outOfBudget(): boolean {
     const max = this.opts.maxRequests;
@@ -86,8 +92,6 @@ export class Crawler {
     this.stats.budgetExhausted = true;
     return true;
   }
-
-  constructor(private readonly opts: CrawlOptions) {}
 
   async *tweets(): AsyncGenerator<Tweet> {
     const discovered = await this.opts.discovery.discover();
@@ -99,14 +103,13 @@ export class Crawler {
       handles: discovered.handles,
     });
 
-    const maxDepth = this.opts.expansionDepth ?? 1;
     const maxAccounts = this.opts.maxAccounts ?? 50;
     const visited = new Set<string>();
 
     let frontier = dedupeHandles(discovered.handles);
     const nextFrontier: string[] = [];
 
-    for (let depth = 0; depth <= maxDepth && frontier.length > 0; depth++) {
+    for (let depth = 0; depth <= this.maxDepth && frontier.length > 0; depth++) {
       if (this.outOfBudget()) return;
 
       const batch = frontier
@@ -179,7 +182,7 @@ export class Crawler {
         );
         if (tweet === null) continue;
 
-        if (depth < (this.opts.expansionDepth ?? 1)) collectExpansion(tweet, nextFrontier);
+        if (depth < this.maxDepth) collectExpansion(tweet, nextFrontier);
         yield tweet;
 
         // Checked after yielding so the tweets already paid for are not thrown away.
