@@ -4,6 +4,11 @@ A browserless X (Twitter) scraper, shipped as an Apify Actor. No browser engine,
 account credentials, no purchased tweet data — plain HTTP against X's own GraphQL API
 with guest tokens, plus a free-tier cap that cannot be lifted by editing the input.
 
+|        |                                                    |
+| ------ | -------------------------------------------------- |
+| Source | https://github.com/ArthurVianna96/x-tweet-scraper  |
+| Actor  | https://console.apify.com/actors/PNZugrwspnmMj70at |
+
 ```bash
 npm install
 npm test                     # 204 tests, offline, ~0.5s
