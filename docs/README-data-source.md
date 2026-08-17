@@ -1,7 +1,7 @@
 # Data-source measurements
 
 Raw evidence behind the architecture. The argument itself lives in
-[`README.md`](../README.md) §1–§3; this file is the appendix that keeps the _numbers_ and
+[`README.md`](../README.md) §1–§4; this file is the appendix that keeps the _numbers_ and
 their dates, so drift is visible rather than assumed.
 
 Everything here is reproducible with `npm run probe` (≈20 s, no credentials).
@@ -99,7 +99,7 @@ Guest `UserTweets` has two response modes, and the pagination stop signal is unr
 
 Snapshot-mode pages are **not** in chronological order; paginated-mode pages are. Treating
 the terminate instruction as authoritative truncates `@apify` from 92 tweets to 19 with no
-error anywhere in the logs — see `README.md` §3 and `src/adapters/x/timeline.ts`.
+error anywhere in the logs — see `README.md` §4 and `src/adapters/x/timeline.ts`.
 
 Throughput properties driving the concurrency design:
 

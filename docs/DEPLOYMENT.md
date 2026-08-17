@@ -1,7 +1,7 @@
 # Deploying and operating the gate
 
 How to stand up your own copy of this Actor and provision paying customers. The _why_
-behind all of it is in [`README.md` §4](../README.md#4-the-free-tier-you-cannot-edit-away);
+behind all of it is in [`README.md` §5](../README.md#5-the-free-tier-you-cannot-edit-away);
 this file is the runbook.
 
 Nothing here is needed to run the Actor or the test suite. Without an entitlements store

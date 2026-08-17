@@ -10,7 +10,7 @@ editing the input.
 Two things about it are worth your time. The first is that **X gates keyword search for
 guest tokens**, which quietly invalidates the obvious design — so the Actor takes a
 different route to the same data, and §1–§2 show the measurements that forced it. The
-second is the **free-tier gate** in §4, which is harder than it looks: the run executes on
+second is the **free-tier gate** in §5, which is harder than it looks: the run executes on
 the customer's own Apify account, holding the customer's own token, writing to the
 customer's own storage. Almost every natural place to put the limit is somewhere they
 control.
@@ -42,15 +42,15 @@ The brief (§2a) asks us to say this plainly, so:
 | **Tweets by author**   | `UserTweets`                        | ✅ required — the extraction engine         |
 | **Single tweet by id** | `TweetResultByRestId`               | ✅ required — `tweetIds`, one request each  |
 | **Profile by handle**  | `UserByScreenName`                  | ✅ required — returns §5's `author` in full |
-| **Free-text search**   | `SearchTimeline` is `404` to guests | ⚠️ **stretch, served a different way** (§2) |
+| **Free-text search**   | `SearchTimeline` is `404` to guests | ⚠️ **stretch, served a different way** (§3) |
 
 All three required surfaces are guest-reachable, browserless, and at the §5 schema.
 
 `searchTerms` works, but not through X: X's search timeline is walled to guests, so the
 keywords are answered by seeding account discovery from a public web index and filtering
-natively (§2). That is the "equivalent public HTTP source you justify" route rather than
+natively (§3). That is the "equivalent public HTTP source you justify" route rather than
 the programmatic-auth route, and its honest limitation is that **recall is seed-bounded** —
-you get matching tweets from accounts that discuss the topic, not every tweet on X (§9).
+you get matching tweets from accounts that discuss the topic, not every tweet on X (§10).
 It is not rejected as unsupported; it is implemented, measured, and scoped.
 
 ---
@@ -59,14 +59,15 @@ It is not rejected as unsupported; it is implemented, measured, and scoped.
 
 1. [The finding everything rests on](#1-the-finding-everything-rests-on)
 2. [Architecture: separating _who_ from _what_](#2-architecture-separating-who-from-what)
-3. [Scraping X without a browser](#3-scraping-x-without-a-browser)
-4. [The free tier you cannot edit away](#4-the-free-tier-you-cannot-edit-away)
-5. [Speed and cost, measured](#5-speed-and-cost-measured)
-6. [Output contract, and the calls behind it](#6-output-contract-and-the-calls-behind-it)
-7. [Running it](#7-running-it)
-8. [robots.txt, ToS, and what we would tell a client](#8-robotstxt-tos-and-what-we-would-tell-a-client)
-9. [What it cannot do](#9-what-it-cannot-do)
-10. [Decisions and trade-offs](#10-decisions-and-trade-offs)
+3. [Keyword search, without X's search](#3-keyword-search-without-xs-search)
+4. [Scraping X without a browser](#4-scraping-x-without-a-browser)
+5. [The free tier you cannot edit away](#5-the-free-tier-you-cannot-edit-away)
+6. [Speed and cost, measured](#6-speed-and-cost-measured)
+7. [Output contract, and the calls behind it](#7-output-contract-and-the-calls-behind-it)
+8. [Running it](#8-running-it)
+9. [robots.txt, ToS, and what we would tell a client](#9-robotstxt-tos-and-what-we-would-tell-a-client)
+10. [What it cannot do](#10-what-it-cannot-do)
+11. [Decisions and trade-offs](#11-decisions-and-trade-offs)
 
 ---
 
@@ -114,7 +115,7 @@ us to build on.
 
 `TrendHistory` is the interesting entry. It was gated on 2026-08-14 and permitted on
 2026-08-17. This surface is undocumented and it moves, which is the whole argument for
-resolving `queryId`s at runtime instead of shipping them (§3).
+resolving `queryId`s at runtime instead of shipping them (§4).
 
 We looked for a way around the gate before accepting it. Every attempt failed, including
 `SearchTimeline` via `api.x.com` / `twitter.com` / POST / `product=Top`, X's legacy iPhone
@@ -155,7 +156,7 @@ leaves X, and it happens once.
 ```
 
 Both sources are lazy generators feeding one sink, which is what lets the cap stop the
-_fetching_ on either surface (§4.3).
+_fetching_ on either surface (§5.3).
 
 That split is what keeps the compromise contained. Discovery sits behind a port, so the
 one part of the problem X refuses to help with is isolated in a single swappable adapter —
@@ -164,12 +165,21 @@ and the other 95% of the system neither knows nor cares which strategy ran.
 **`UserTweets` returns complete tweet objects** — full text, all six metrics, entities,
 media, author. Nothing needs a second hydration call. The cost unit is _one request ≈ 20
 tweets_, not one request per tweet, and that single fact is why the native path is fast
-(§5).
+(§6).
 
 **Growing the account set is free.** Mentions and retweeted authors are already sitting in
 pages we have paid for, so the frontier expands at zero extra request cost. It is
 depth-limited (default 1) because mentions from a topical account are not all topical, and
 precision decays quickly.
+
+## 3. Keyword search, without X's search
+
+`searchTerms` is the one surface X does not hand us. The brief scopes it as a **stretch,
+not a requirement** — implement the author/id/profile paths and say honestly that search
+is walled. It is implemented here anyway, through a public web index rather than through
+X, which the brief names as the "equivalent public HTTP source you justify" route.
+
+The trick is _what question you ask the index_.
 
 ### Why we ask a search engine about people, not posts
 
@@ -194,23 +204,38 @@ with a 14 KB anti-bot challenge, while Brave answered `200` with usable results 
 same query in the same minute. Mojeek and Ecosia returned `403`. Bing returned `200` but
 wraps every result in a base64 redirect, so no handles survive its HTML.
 
-So `SeededTopicDiscovery` walks an ordered list of engines — cheapest first, since this
-traffic crosses the same paid proxy as everything else — and the first one that yields
-handles wins. A blocked engine falls through. A throwing engine does not fail the run. All
+So `SeededTopicDiscovery` walks an ordered list — DuckDuckGo's HTML and Lite endpoints,
+then Brave, then Startpage — cheapest first, since this traffic crosses the same paid
+proxy as everything else. The first engine that yields handles wins. A blocked engine falls through. A throwing engine does not fail the run. All
 engines blocked yields no seeds and a logged warning, not a crash.
+
+### What it costs, and what it cannot do
+
+Once the handles are in hand the run is 100% native X: profiles resolve to ids, timelines
+page normally, and the keyword is applied as a filter over the normalized text. Mentions
+and retweeted authors found along the way widen the frontier for free.
+
+The honest limit is **recall**. You get matching tweets from accounts that discuss the
+topic, not every tweet on X, and no amount of engineering closes that gap from the guest
+surface. Selectivity is low as a result — a measured keyword run matched 1.6% of what it
+fetched, against 84% on the author path — which is why keyword runs cost ≈$7.49 per 1k
+results against ≈$0.41 (§6), and why the Actor carries a request budget.
+
+Supplying `fromUsers` removes the dependency entirely: no search engine, no third party,
+nothing but X.
 
 ### What we considered instead
 
 | Option                                                       | Why not                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Paid tweet-search API** (e.g. a pay-per-event Apify actor) | Keyword results immediately — and the X-specific extraction becomes the vendor's work, not ours. Worth knowing: `apidojo-io/twitter-scraper-lite`, the widely-referenced "X scraper", makes **no HTTP calls to X at all**. It is an `apify_client` wrapper around paid actor `nfp1fpt5gUlBwPcor`. |
-| **X official API v2 recent search**                          | Legitimate, but needs a paid app bearer — a hardcoded server-side credential, which is exactly the mechanism §3 rules out.                                                                                                                                                                        |
+| **X official API v2 recent search**                          | Legitimate, but needs a paid app bearer — a hardcoded server-side credential, which is exactly the mechanism the brief's §3 rules out.                                                                                                                                                            |
 | **Search index → tweet IDs → hydrate**                       | Measured and rejected: 36-day-old freshest result, zero hashtag coverage.                                                                                                                                                                                                                         |
 | **Logged-in account pool**                                   | Prohibited by §3 of the brief.                                                                                                                                                                                                                                                                    |
 
 ---
 
-## 3. Scraping X without a browser
+## 4. Scraping X without a browser
 
 No browser engine is installed and none is needed. The entire client is
 [`got-scraping`](https://github.com/apify/got-scraping) behind a one-function port:
@@ -254,26 +279,20 @@ a 20-entry page into **32 items**, the same content emitted two and three times.
 Pinned entries are skipped for a related reason. A pinned tweet is an arbitrarily old
 tweet served at the top of a timeline, and emitting it silently corrupts `sortBy: latest`.
 
-### 3. X's own stop signal is advisory, and believing it costs 79% of recall
+### 3. X's own stop signal is advisory
 
-`TimelineTerminateTimeline` sounds like it means "stop paging". It does not.
+`TimelineTerminateTimeline` sounds like it means "stop paging". It does not: X emits it on
+_every_ page of a paginated timeline while the bottom cursor keeps returning fresh tweets.
+Obey it and `@apify` truncates from 92 tweets to 19 — a **79% recall loss**, and nothing
+errors. The logs look perfectly healthy.
 
-| Account  | Page 0    | `direction`    | If you follow the cursor anyway        |
-| -------- | --------- | -------------- | -------------------------------------- |
-| `@apify` | 19 tweets | `TopAndBottom` | 5 pages, **92 unique tweets, all new** |
-| `@naval` | 98 tweets | `TopAndBottom` | no cursor issued at all                |
+That is the failure mode worth designing against here: not a crash, but silent data loss
+no alert fires on. So the Actor stops on structural signals only — no bottom cursor, a
+cursor that did not advance, an empty page, or a page containing nothing new.
 
-X emits `TopAndBottom` on _every_ page of a paginated timeline while the bottom cursor
-keeps returning fresh tweets. Obey it and `@apify` truncates from 92 tweets to 19 — and
-nothing errors. The logs look perfectly healthy. This is the failure mode worth fearing:
-not a crash, but a quiet 79% recall loss that no alert will ever fire on.
-
-The Actor therefore stops on **structural** signals only: no bottom cursor, a cursor that
-did not advance, an empty page, or a page containing nothing new.
-
-That table carries a second finding too. Guests see **two response modes** — paginated
-(~17–20 tweets per page plus a working cursor) and single-snapshot (~98–100 tweets, no
-cursor, non-chronological). The extractor handles both. Full per-account measurements are
+Guests also see two response modes, and the extractor handles both: paginated (~17–20
+tweets per page plus a cursor) and single-snapshot (~98–100 tweets, no cursor,
+non-chronological). Per-account measurements are
 [in the appendix](docs/README-data-source.md#5-timeline-behaviour-measured-2026-08-17).
 
 ### Normalization: the text pipeline, in order
@@ -318,7 +337,7 @@ and `screen_name`/`name` now live under `core`, not `legacy`. More
 
 ---
 
-## 4. The free tier you cannot edit away
+## 5. The free tier you cannot edit away
 
 **The requirement:** unverified users get at most 10 results per run, and the Actor must
 _stop fetching and pushing_ at 10 regardless of what the input says. Client-side limits do
@@ -489,7 +508,7 @@ that is the right trade.**
 
 ---
 
-## 5. Speed and cost, measured
+## 6. Speed and cost, measured
 
 The benchmark is time to 100 items from a single high-volume author, residential proxy,
 paid user. One property sets the ceiling: **a single author is a single cursor chain, and
@@ -599,7 +618,7 @@ internally: page 2 needs page 1's cursor.
 
 ---
 
-## 6. Output contract, and the calls behind it
+## 7. Output contract, and the calls behind it
 
 Every item conforms exactly to the required shape. **Missing values are `null` — never
 omitted, never `undefined`** — so the dataset keeps a stable column set. Timestamps are
@@ -673,7 +692,7 @@ by the cap and checkpointed on migration.
 
 ---
 
-## 7. Running it
+## 8. Running it
 
 ### The fastest way to verify this
 
@@ -765,7 +784,7 @@ Results land as one file per item in `storage/datasets/default/`, and the run su
 
 **Both runners purge the default dataset and key-value store on start** (keeping `INPUT`),
 so each local run is clean and there is no stale-state trap. The side effect is that the
-resume protection in §4.5 is invisible locally — it needs storage to survive. To watch it
+resume protection in §5.5 is invisible locally — it needs storage to survive. To watch it
 work, disable the purge and run twice:
 
 ```bash
@@ -797,7 +816,7 @@ lookup is more likely to be challenged from a datacenter IP.
 | `npm run typecheck` / `npm run lint`                          | strict TS, ESLint                        |
 | `npm run probe`                                               | re-derive the endpoint capability matrix |
 | `npx tsx src/tools/capture-fixtures.ts <handles…>`            | refresh committed fixtures from live X   |
-| `npx tsx src/tools/benchmark.ts native \| seeded <arg>`       | reproduce §5                             |
+| `npx tsx src/tools/benchmark.ts native \| seeded <arg>`       | reproduce §6                             |
 | `npm run entitlement -- <key\|grant\|revoke\|check> <userId>` | provision a paid customer                |
 
 Layering is one-way — `actor → adapters → domain` — and `domain/` imports nothing from the
@@ -806,7 +825,7 @@ suite. See `CLAUDE.md` for the full conventions.
 
 ---
 
-## 8. robots.txt, ToS, and what we would tell a client
+## 9. robots.txt, ToS, and what we would tell a client
 
 `https://x.com/robots.txt` sets `User-agent: * → Disallow: /`. The `Allow:` rules for
 `/search`, `/hashtag/*` and `/i/api/` apply only to the named `Googlebot`/`Bingbot` group.
@@ -830,7 +849,7 @@ three things:
 
 ---
 
-## 9. What it cannot do
+## 10. What it cannot do
 
 Stated plainly, because a limitation you find in the README is cheaper than one you find in
 production.
@@ -844,7 +863,7 @@ production.
 - **`sortBy: top` is an approximation** — engagement ranking within the collected set. X's
   own relevance ranking is not reproducible from the guest surface.
 - **On a paginated author the benchmark is proxy-bound, and Grade A is not guaranteed.**
-  Measured 4 of 8 runs under 30 s, median 33.2 s, on constant work (§5). A single cursor
+  Measured 4 of 8 runs under 30 s, median 33.2 s, on constant work (§6). A single cursor
   chain is sequential by construction, so residential-proxy latency multiplies across every
   page. We tried rotating away from slow nodes and measured no improvement. Shortening the
   chain does help — counting retweets takes it to 7 of 8 — but the tail stays, because the
@@ -856,13 +875,13 @@ production.
   `src/tools/capture-fixtures.ts` makes re-capturing a one-command job. Out of scope here,
   and stated rather than papered over.
 - **The seed lookup depends on third-party search engines**, which challenge automated
-  traffic (§2). The cascade mitigates it; `fromUsers` removes the dependency entirely.
+  traffic (§3). The cascade mitigates it; `fromUsers` removes the dependency entirely.
 - **Buffered output** trades peak memory for correct ordering. At the scale this Actor
   targets — hundreds to low thousands of results — that is the right trade. A
   hundred-thousand-result run would want a spill-to-disk merge sort instead.
 
 Delivered from the bonus list (§11): **`searchTerms` via a justified public HTTP source**
-rather than left unsupported; incremental/resumable scraping keyed on stored cursors (§4.5);
+rather than left unsupported; incremental/resumable scraping keyed on stored cursors (§5.5);
 global deduplication and a seen-set across overlapping targets — required anyway, given
 nested retweets, snowball overlap and ids that also appear in a crawled timeline; graceful
 handling of protected / suspended / deleted accounts and dead tweet ids, neither of which
@@ -870,7 +889,7 @@ fails a run; and cost-per-1k reporting. Not delivered: the finish webhook.
 
 ---
 
-## 10. Decisions and trade-offs
+## 11. Decisions and trade-offs
 
 1. **Build on the doors that are open, and say which they are.** The three required
    surfaces — author, id, profile — are guest-reachable and implemented natively. Search is
