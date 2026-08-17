@@ -31,12 +31,9 @@ export function normalizeTweet(raw: unknown, opts: NormalizeOptions = {}): Tweet
   const inReplyToId = asString(legacy['in_reply_to_status_id_str']);
 
   /**
-   * Step 1 of the text pipeline: pick the object the text lives on.
-   *
-   * A retweet's own `legacy.full_text` is the wrapper — `"RT @handle: …"`, truncated at
-   * ~140 chars. The real content is one level down. Everything textual (entities, media,
-   * note_tweet) must be read from the *same* object, or the entities describe a string
-   * we are not emitting.
+   * Step 1 of the text pipeline: pick the object the content lives on. A retweet's own
+   * `legacy.full_text` is the `"RT @handle: …"` wrapper, truncated at ~140 chars; the
+   * real content is one level down, and everything textual must be read from there.
    */
   const contentSource = isRetweet ? path(legacy, 'retweeted_status_result', 'result') : result;
 
@@ -72,41 +69,45 @@ export function normalizeTweet(raw: unknown, opts: NormalizeOptions = {}): Tweet
 }
 
 /**
- * Steps 2–4 of the text pipeline. Order is load-bearing; see the comment on decoding.
+ * Step 2 of the text pipeline: the object the text and its entities both come from.
+ *
+ * Long-form posts keep their full text in `note_tweet`; `legacy.full_text` is truncated
+ * at ~280 chars with a t.co pointer appended. The truncated version can therefore be
+ * *longer* in raw characters than the complete one — measured 302 vs 283 on one @apify
+ * post, because the appended t.co link costs 23 characters more than the ending it
+ * replaced. "Whichever string is longer" emits the truncated text; the presence of
+ * `note_tweet` is the rule.
+ *
+ * Text and entities are resolved together because they must agree: a note tweet's
+ * entities live under `entity_set`, and describing one string with the other's offsets
+ * is how bare `t.co` links survive into the output.
  */
-function buildText(contentSource: unknown): string {
-  const legacy = asRecord(path(contentSource, 'legacy'));
+function readTextSource(contentSource: unknown): { text: string; entities: unknown } {
   const note = path(contentSource, 'note_tweet', 'note_tweet_results', 'result');
   const noteText = asString(path(note, 'text'));
+  if (noteText !== null) return { text: noteText, entities: path(note, 'entity_set') };
+
+  const legacy = path(contentSource, 'legacy');
+  return {
+    text: asString(path(legacy, 'full_text')) ?? '',
+    entities: path(legacy, 'entities'),
+  };
+}
+
+/** Steps 2–4 of the text pipeline. Order is load-bearing; see the comment on decoding. */
+function buildText(contentSource: unknown): string {
+  const { text, entities } = readTextSource(contentSource);
 
   /**
-   * Step 2: long-form posts keep their full text in `note_tweet`; `legacy.full_text` is
-   * truncated at ~280 chars with a t.co pointer appended.
-   *
-   * Note that the truncated version can be *longer* in raw characters than the complete
-   * one — measured 302 vs 283 on one @apify post, because the appended t.co link costs
-   * 23 characters more than the ending it replaced. Choosing "whichever string is
-   * longer" would therefore emit the truncated text. `display_text_range` ([0, 278] on
-   * that post) is the tell; the presence of `note_tweet` is the rule.
+   * Step 3. A tweet's trailing photo/video link is a t.co too, but it lives in
+   * `entities.media[]`, not `entities.urls[]` — and always on `legacy`, since note tweets
+   * carry no media set. Expanding only the urls leaves a bare `https://t.co/…` in the
+   * text of every tweet that has media, the single most common case there is.
    */
-  const rawText = noteText ?? asString(path(legacy, 'full_text')) ?? '';
-
-  // Entities must come from whichever object supplied the text. For note tweets they
-  // live under `entity_set`, not `legacy.entities`.
-  const urlEntities =
-    noteText !== null
-      ? asArray(path(note, 'entity_set', 'urls'))
-      : asArray(path(legacy, 'entities', 'urls'));
-
-  /**
-   * A tweet's trailing photo/video link is a t.co too, but it lives in
-   * `entities.media[]`, not `entities.urls[]`. Expanding only the latter leaves a bare
-   * `https://t.co/…` in the text of every tweet that has media — the single most common
-   * case there is.
-   */
-  const mediaEntities = asArray(path(legacy, 'entities', 'media'));
-
-  const expanded = expandUrls(rawText, [...urlEntities, ...mediaEntities]);
+  const expanded = expandUrls(text, [
+    ...asArray(path(entities, 'urls')),
+    ...asArray(path(contentSource, 'legacy', 'entities', 'media')),
+  ]);
 
   /**
    * Step 4, and it must be last. X's `indices` are offsets into the *raw* string, so any
@@ -182,10 +183,7 @@ function readMetrics(contentSource: unknown): TweetMetrics {
 }
 
 function readEntities(contentSource: unknown): TweetEntities {
-  const legacy = path(contentSource, 'legacy');
-  const note = path(contentSource, 'note_tweet', 'note_tweet_results', 'result');
-  const entitySet = asString(path(note, 'text')) !== null ? path(note, 'entity_set') : undefined;
-  const entities = entitySet ?? path(legacy, 'entities');
+  const { entities } = readTextSource(contentSource);
 
   return {
     hashtags: asArray(path(entities, 'hashtags'))
@@ -198,7 +196,7 @@ function readEntities(contentSource: unknown): TweetEntities {
       .map((u) => asString(path(u, 'expanded_url')))
       .filter((u): u is string => u !== null),
     // Media only ever lives on `legacy.extended_entities`; note tweets have no media set.
-    media: asArray(path(legacy, 'extended_entities', 'media'))
+    media: asArray(path(contentSource, 'legacy', 'extended_entities', 'media'))
       .map(readMedia)
       .filter((m): m is TweetMedia => m !== null),
   };
