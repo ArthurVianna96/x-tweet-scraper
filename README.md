@@ -578,6 +578,21 @@ bounded by the cap and checkpointed on migration.
 
 ## 7. Running it
 
+### Deployment status
+
+Deployed and verified on Apify on 2026-08-17 (Actor `x-tweet-scraper`, build 0.1.2):
+
+| Check                                       | Result                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Paid run, `maxResults: 15`                  | 15 items, `limited: false`                                                               |
+| Paid run, `maxResults: 1000` on one account | 233 items — the account's full reachable timeline                                        |
+| **Free run, `maxResults: 1000`**            | **10 items**, `reason: "free_tier"`, 3 requests, 1 token                                 |
+| Secret env vars on the Actor                | both `isSecret: true` — the HMAC key is not on the detail page                           |
+| Entitlement propagation                     | a `grant`/`revoke` is visible to the next run immediately; no caching observed over 60 s |
+
+The free run is the one that matters: 3 requests and 1 guest token for a 1000-result
+request means the cap stopped the _crawl_, not just the output.
+
 ### Configuring the gate
 
 Two environment variables drive it. `.env.example` documents both; copy it to `.env` for
